@@ -2,9 +2,9 @@ import numpy as np
 import json
 from fastapi import Depends, FastAPI
 from pydantic import BaseModel
-from seir import seir, full_seir    
+from app.seir import seir, full_seir    
 from os import environ
-from auth import get_user
+from app.auth import get_user
 
 class Params(BaseModel):
     days: int

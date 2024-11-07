@@ -1,6 +1,6 @@
 from fastapi import Security, HTTPException, status
 from fastapi.security import APIKeyHeader
-from db import check_api_key, get_user_from_api_key
+from app.db import check_api_key, get_user_from_api_key
 
 api_key_header = APIKeyHeader(name='X-API-Key')
 
