@@ -1,0 +1,12 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: gleam-seir-api-service
+spec:
+  template:
+    spec:
+      containers:
+        - image: us-west1-docker.pkg.dev/epistorm-gleam-api/gleam-seir-api/gleam-seir-api
+          env:
+          ports:
+            - containerPort: 80
