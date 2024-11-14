@@ -4,8 +4,8 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud.firestore_v1 import DocumentReference
 
 # Application Default credentials are automatically created.
-# cred = credentials.Certificate("app/secrets/epistorm-gleam-api-90859df48d72.json")
-app = firebase_admin.initialize_app()
+cred = credentials.Certificate("app/secrets/epistorm-gleam-api-90859df48d72.json")
+app = firebase_admin.initialize_app(cred)
 db = firestore.client()
 users_ref = db.collection('users')
 
