@@ -1,0 +1,78 @@
+swagger: "2.0"
+info:
+  title: gleam-api-seir
+  description: "Initial SEIR GLEAM API"
+  version: "1.0.0"
+schemes:
+  - "https"
+produces:
+  - application/json
+paths:
+  /:
+    get:
+      summary: Test
+      operationId: test__get
+      x-google-backend:
+        address: https://gleam-seir-api-883627921778.us-west1.run.app/
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+        - APIKeyHeader: []
+  /original:
+    post:
+      summary: Original
+      operationId: original_original_post
+      x-google-backend:
+        address: https://gleam-seir-api-883627921778.us-west1.run.app/original
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: '#/components/schemas/Params'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                type: string
+      security:
+        - APIKeyHeader: []
+  /multiple:
+    post:
+      summary: Multiple
+      operationId: multiple_multiple_post
+      x-google-backend:
+        address: https://gleam-seir-api-883627921778.us-west1.run.app/multiple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                type: string
+      security:
+        - APIKeyHeader: []
+        
+          

@@ -1,19 +1,29 @@
-api_keys = {
-    "e54d4431-5dab-474e-b71a-0db1fcb9e659": "7oDYjo3d9r58EJKYi5x4E8",
-    "5f0c7127-3be9-4488-b801-c7b6415b45e9": "mUP7PpTHmFAkxcQLWKMY8t"
-}
+import firebase_admin
+from firebase_admin import firestore, credentials
+from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1 import DocumentReference
 
-users = {
-    "7oDYjo3d9r58EJKYi5x4E8": {
-        "name": "Bob"
-    },
-    "mUP7PpTHmFAkxcQLWKMY8t": {
-        "name": "Alice"
-    },
-}
+# Application Default credentials are automatically created.
+cred = credentials.Certificate("app/secrets/epistorm-gleam-api-90859df48d72.json")
+app = firebase_admin.initialize_app(cred)
+db = firestore.client()
+users_ref = db.collection('users')
+
 
 def check_api_key(api_key: str):
-    return api_key in api_keys
+    print('getting doc')
+    docs = users_ref.where(filter=FieldFilter('API_Key', '==', api_key)).stream()
+    output = []
+    for doc in docs:
+        doc = users_ref.document(doc.id)
+        output.append(doc)
+    return len(output) > 0
 
 def get_user_from_api_key(api_key: str):
-    return users[api_keys[api_key]]
+    docs = users_ref.where(filter=FieldFilter('API_Key', '==', api_key)).stream()
+    output = []
+    for doc in docs:
+        doc_reference = users_ref.document(doc.id)
+        output.append((doc,doc_reference))
+    
+    return output[:1]
