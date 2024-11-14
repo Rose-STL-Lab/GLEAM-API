@@ -47,4 +47,3 @@ def multiple(params: ListParams, user = Depends(get_user)):
     json_dump = json.dumps({"train_set": item_1}, 
                        cls=NumpyEncoder)
     return json_dump
-
