@@ -22,3 +22,47 @@ Run this command to launch server
 ```console
 uvicorn main:app -- reload
 ```
+
+## Calling the API endpoint
+
+Currently, the code for this api is deployed on google cloud at the link [https://gleam-seir-api-883627921778.us-west1.run.app](https://gleam-seir-api-883627921778.us-west1.run.app). In order to call the API however, one needs an API key to put in the header of their request. This can be obtained through asking the owner of the repository for one. There are currently three endpoints in the api. These endpoints are all relative to the original url.
+
+The root endpoint (/) returns information about the user and is a get request.
+
+The original endpoint (/original) returns data from the seir simulation based off of a set of parameters. It is a post request and requires a json in the payload that looks as follows:
+
+```yaml
+{
+    days: 101,
+    sims: 30,
+    beta: 1.1,
+    epsilon: 0.25,
+}
+```
+With parameters of the type
+```yaml
+{
+    days: int,
+    sims: int,
+    beta: float,
+    epsilon: float,
+}
+```
+
+The multiple endpoint (/multiple) returns sets data from the seir simulation based off of a list of parameters. The beta_epislon parameter is the same as the beta and epsilon from above except compressed into a list with the beta parameter coming first. It is a post request and requires a json in the payload that looks as follows:
+
+```yaml
+{
+    days: 101,
+    sims: 30,
+    beta_epsilon: [[1.1,0.25],[1.2,0.26]],
+}
+```
+With parameters of the type
+```yaml
+{
+    days: int,
+    sims: int,
+    beta_epsilon: list,
+}
+```
