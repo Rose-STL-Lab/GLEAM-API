@@ -1,0 +1,3 @@
+google-cloud-storage
+numpy
+google.cloud.logging
