@@ -6,7 +6,7 @@ from app.seir import seir, full_seir
 from os import environ
 from app.auth import get_user
 from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
-# from compute import create_instance_with_docker
+from compute import create_instance_with_docker
 
 class Params(BaseModel):
     days: int
@@ -55,20 +55,20 @@ def multiple(params: ListParams, user: tuple[DocumentSnapshot, DocumentReference
                        cls=NumpyEncoder)
     return json_dump
 
-# @app.post("/create_compute")
-# def create_compute(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
-#     output = create_instance_with_docker(
-#         project_id="epistorm-gleam-api",
-#         zone="us-central1-a",
-#         instance_name="my-docker-vm8",
-#         machine_type="e2-medium",
-#         image_family="debian-12",
-#         image_project="debian-cloud",
-#         docker_image="gcr.io/epistorm-gleam-api/seir",
-#         beta=2,
-#         epsilon=0.5,
-#         simulations=30,
-#         days=100,
-#         bucket='seir-output-bucket-2'
-#         )
-#     return output
+@app.post("/create_compute")
+def create_compute(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+    output = create_instance_with_docker(
+        project_id="epistorm-gleam-api",
+        zone="us-central1-a",
+        instance_name="my-docker-vm8",
+        machine_type="e2-medium",
+        image_family="debian-12",
+        image_project="debian-cloud",
+        docker_image="gcr.io/epistorm-gleam-api/seir",
+        beta=2,
+        epsilon=0.5,
+        simulations=30,
+        days=100,
+        bucket='seir-output-bucket-2'
+        )
+    return output
