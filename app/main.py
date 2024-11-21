@@ -6,7 +6,7 @@ from app.seir import seir, full_seir
 from os import environ
 from app.auth import get_user
 from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
-from compute import create_instance_with_docker
+# from compute import create_instance_with_docker
 
 class Params(BaseModel):
     days: int

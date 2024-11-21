@@ -1,4 +1,4 @@
-from google.cloud import compute_v1
+# from google.cloud import compute_v1
 
 # instances_client = compute_v1.InstancesClient()
 
