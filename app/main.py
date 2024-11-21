@@ -56,7 +56,7 @@ def multiple(params: ListParams, user: tuple[DocumentSnapshot, DocumentReference
     return json_dump
 
 @app.post("/create_compute")
-def create_compute(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
     output = create_instance_with_docker(
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
@@ -65,10 +65,10 @@ def create_compute(user: tuple[DocumentSnapshot, DocumentReference] = Depends(ge
         image_family="debian-12",
         image_project="debian-cloud",
         docker_image="gcr.io/epistorm-gleam-api/seir",
-        beta=2,
-        epsilon=0.5,
-        simulations=30,
-        days=100,
+        beta=params.beta,
+        epsilon=params.epsilon,
+        simulations=params.sims,
+        days=params.days,
         bucket='seir-output-bucket-2'
         )
     return output
