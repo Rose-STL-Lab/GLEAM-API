@@ -1,6 +1,12 @@
+print ("test")
+
 from google.cloud import compute_v1
 
+print ("compute downloaded")
+
 instances_client = compute_v1.InstancesClient()
+
+print ("Instance client found")
 
 def create_instance_with_docker(
     project_id: str,
