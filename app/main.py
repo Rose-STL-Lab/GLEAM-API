@@ -71,4 +71,4 @@ def create_compute(user: tuple[DocumentSnapshot, DocumentReference] = Depends(ge
         days=100,
         bucket='seir-output-bucket-2'
         )
-    return
+    return output
