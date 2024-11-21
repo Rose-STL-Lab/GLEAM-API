@@ -1,5 +1,0 @@
-steps:
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-f', 'Dockerfile', '-t', "us-west1-docker.pkg.dev/epistorm-gleam-api/gleam-seir-api/gleam-seir-api:latest", '.']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-west1-docker.pkg.dev/epistorm-gleam-api/gleam-seir-api/gleam-seir-api:latest']
