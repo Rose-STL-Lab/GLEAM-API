@@ -71,6 +71,6 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
         epsilon=params.epsilon,
         simulations=params.sims,
         days=params.days,
-        bucket='seir-output-bucket-2'
+        bucket=f'seir-output-bucket-2-{timestamp}'
         )
-    return output
+    return f'seir-output-bucket-2-{timestamp}'
