@@ -89,13 +89,8 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
 def create_compute(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
     client = storage.Client()
-
-    # Get the bucket
     bucket = client.bucket("seir-output-bucket-2")
-
-    # Get the blob (file)
-    blob = bucket.blob(f'out-{params.stamp}')
-
-    # Read the file content as text
+    blob = bucket.blob(f'out-{params.stamp}.json')
     content = blob.download_as_text()
+
     return content
