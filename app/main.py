@@ -9,6 +9,10 @@ from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
 from app.compute import create_instance_with_docker
 import time
 from google.cloud import storage
+from google.cloud.exceptions import NotFound
+from google.api_core.exceptions import GoogleAPICallError
+from fastapi import HTTPException
+
 
 class Params(BaseModel):
     days: int
@@ -30,6 +34,7 @@ class ComputeParams(BaseModel):
 
 class StampParams(BaseModel):
     stamp: str
+    delete: bool
     
     
 class NumpyEncoder(json.JSONEncoder):
@@ -87,10 +92,28 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
 
 @app.post("/data")
 def create_compute(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+    try:
+        client = storage.Client()
+        bucket = client.bucket("seir-output-bucket-2")
+    except NotFound:
+        raise HTTPException(status_code=404, detail="Bucket not found.")
+    except GoogleAPICallError as e:
+        raise HTTPException(status_code=500, detail=f"Error accessing GCS: {str(e)}")
 
-    client = storage.Client()
-    bucket = client.bucket("seir-output-bucket-2")
-    blob = bucket.blob(f'out-{params.stamp}.json')
-    content = blob.download_as_text()
+    try:
+        blob = bucket.blob(f'out-{params.stamp}.json')
 
-    return content
+        if not blob.exists():
+            raise HTTPException(status_code=404, detail=f"Data not found in the bucket.")
+        
+        content = blob.download_as_text()
+        if params.delete:
+            blob.delete()
+
+        return content
+    
+    except GoogleAPICallError as e:
+        raise HTTPException(status_code=500, detail=f"Error accessing blob: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
