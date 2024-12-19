@@ -10,6 +10,8 @@ Ethan and Anirudh mainly worked on the Async_Api branch.
 Kyla and Liam mainly worked on the gcloud branch.
 Alaa and Manav mainly worked on the api_key branch.
 
+For the final project submission, Anirudh worked on the branch clean_code. Manav worked on the branch container_v1. They both ) and combined the work from both branches (cleaned_code's containerization work is directly taken from container_v1) and deployed it to the cloud. 
+
 ## Set Up
 
 Run this command to install libraries (For some branches like the machine learning one, some libraries like tensorflow may not be installed)
