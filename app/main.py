@@ -58,11 +58,14 @@ def multiple(params: ListParams, user: tuple[DocumentSnapshot, DocumentReference
 
 @app.post("/create_compute")
 def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+
     timestamp = str(int(time.time()))
+
+
     output = create_instance_with_docker(
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
-        instance_name=f"my-docker-vm8-{timestamp}",
+        instance_name=f"seir-generator-{timestamp}",
         machine_type="e2-medium",
         image_family="debian-12",
         image_project="debian-cloud",
@@ -71,6 +74,7 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
         epsilon=params.epsilon,
         simulations=params.sims,
         days=params.days,
-        bucket='seir-output-bucket-2'
+        bucket='seir-output-bucket-2',
+        outfile=f'out-{timestamp}'
         )
     return timestamp

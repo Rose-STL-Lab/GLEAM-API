@@ -20,7 +20,8 @@ def create_instance_with_docker(
     epsilon: float,
     simulations: int,
     days: int,
-    bucket: str
+    bucket: str,
+    outfile: str
 ) -> compute_v1.Instance:
     """
     Creates a Compute Engine VM instance with full API access that pulls and runs a Docker container.
@@ -40,11 +41,18 @@ def create_instance_with_docker(
         Instance object.
     """
     startup_script = f"""#!/bin/bash
+    IMAGE_NAME=$(curl http://metadata.google.internal/computeMetadata/v1/instance/attributes/image_name -H "Metadata-Flavor: Google")
+    CONTAINER_PARAM=$(curl http://metadata.google.internal/computeMetadata/v1/instance/attributes/container_param -H "Metadata-Flavor: Google")
     sudo apt-get update
     sudo apt-get install -y docker.io
     sudo gcloud auth configure-docker
     sudo docker pull {docker_image}
-    sudo docker run -e BETA={beta} -e EPSILON={epsilon} -e SIMULATIONS={simulations} -e DAYS={days} -e GCS_BUCKET={bucket} {docker_image}
+    sudo docker run -e BETA={beta} -e EPSILON={epsilon} -e SIMULATIONS={simulations} -e DAYS={days} -e GCS_BUCKET={bucket} -e OUTFILENAME={outfile} {docker_image}""" + """
+    zoneMetadata=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/zone" -H "Metadata-Flavor:Google")
+    IFS=$'/'
+    zoneMetadataSplit=($zoneMetadata)
+    ZONE="${zoneMetadataSplit[3]}"
+    docker run --entrypoint "gcloud" google/cloud-sdk:alpine compute instances delete ${HOSTNAME}  --delete-disks=all --zone=${ZONE}
     """
 
     metadata_items = [
