@@ -13,6 +13,7 @@ days = os.getenv("DAYS") or 100
 simulations = os.getenv("SIMULATIONS") or 30
 days= int(days)
 simulations = int(simulations)
+output_file_name = os.getenv("OUTFILENAME") or 'default'
 
 def full_seir(num_days, beta_epsilon_flatten, num_simulations):
     mu = 1 #0.4
@@ -94,15 +95,18 @@ def upload_to_gcs(bucket_name, source_file_name, destination_blob_name):
     blob.upload_from_filename(source_file_name)
     print(f"File {source_file_name} uploaded to {bucket_name}/{destination_blob_name}.")
 
+    
+
 if __name__ == '__main__':
     beta_epsilon = np.array([[beta, epsilon]])
     result = full_seir(days, beta_epsilon, simulations)
 
+    output_data = {"train_set": result.tolist()}
 
-    output_file = "output.json"
+    output_file = f"{output_file_name}.json"
     with open(output_file, "w") as f:
-        json.dump(result.tolist(), f)
+        json.dump(output_data, f)
 
     # Upload to Google Cloud Storage
-    gcs_bucket = os.getenv("GCS_BUCKET", "seir-output-bucket")  
-    upload_to_gcs(gcs_bucket, output_file, "output.txt")
+    gcs_bucket = os.getenv("GCS_BUCKET", "seir-output-bucket")
+    upload_to_gcs(gcs_bucket, output_file, f"{output_file_name}.json")

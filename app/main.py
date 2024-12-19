@@ -8,6 +8,7 @@ from app.auth import get_user
 from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
 from app.compute import create_instance_with_docker
 import time
+from google.cloud import storage
 
 class Params(BaseModel):
     days: int
@@ -25,6 +26,11 @@ class ComputeParams(BaseModel):
     sims: int
     beta: float
     epsilon: float
+
+
+class StampParams(BaseModel):
+    stamp: str
+    
     
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -78,3 +84,18 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
         outfile=f'out-{timestamp}'
         )
     return timestamp
+
+@app.post("/data")
+def create_compute(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+
+    client = storage.Client()
+
+    # Get the bucket
+    bucket = client.bucket("seir-output-bucket-2")
+
+    # Get the blob (file)
+    blob = bucket.blob(f'out-{params.stamp}')
+
+    # Read the file content as text
+    content = blob.download_as_text()
+    return content

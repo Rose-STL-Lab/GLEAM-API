@@ -7,9 +7,10 @@ WORKDIR /app
 ENV GOOGLE_CLOUD_PROJECT="quiet-fusion-440218-i2"
 ENV BETA=0.0
 ENV EPSILON=0.0
-ENV GCS_BUCKET="seir-output-bucket"
+ENV GCS_BUCKET="seir-output-bucket2"
 ENV DAYS=100
 ENV SIMULATIONS=30
+ENV OUTFILENAME='default'
 
 
 # Copy the script and requirements file into the container
