@@ -8,6 +8,8 @@ from app.auth import get_user
 from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
 from app.compute import create_instance_with_docker
 import time
+from app.dcrnn_model.dcrnn import DCRNNModel
+import torch
 
 class Params(BaseModel):
     days: int
@@ -74,3 +76,18 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
         bucket='seir-output-bucket-2'
         )
     return timestamp
+
+@app.post("/stnp_model")
+def stnp_model(params: Params, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+    print("started")
+    device = torch.device("cpu")
+    model = DCRNNModel(x_dim=2,y_dim=100,r_dim=8,z_dim=8,device=device)
+    print("model created")
+    model.load_state_dict(torch.load('app/dcrnn_model/weights_batch_size_1.pth'))
+    print("model loaded")
+    zs = torch.load("app/dcrnn_model/zs_batch_size_1.pth",weights_only=False)
+    output = model.decoder(torch.tensor(np.array([[params.beta,params.epsilon]])).float(),zs).detach().numpy()
+    json_dump = json.dumps({"train_set": output}, 
+                       cls=NumpyEncoder)
+    return json_dump
+    
