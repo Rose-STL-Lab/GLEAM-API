@@ -10,6 +10,11 @@ from app.compute import create_instance_with_docker
 import time
 from app.dcrnn_model.dcrnn import DCRNNModel
 import torch
+from google.cloud import storage
+from google.cloud.exceptions import NotFound
+from google.api_core.exceptions import GoogleAPICallError
+from fastapi import HTTPException
+
 
 class Params(BaseModel):
     days: int
@@ -27,6 +32,12 @@ class ComputeParams(BaseModel):
     sims: int
     beta: float
     epsilon: float
+
+
+class StampParams(BaseModel):
+    stamp: str
+    delete: bool
+    
     
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -60,11 +71,14 @@ def multiple(params: ListParams, user: tuple[DocumentSnapshot, DocumentReference
 
 @app.post("/create_compute")
 def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+
     timestamp = str(int(time.time()))
+
+
     output = create_instance_with_docker(
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
-        instance_name=f"my-docker-vm8-{timestamp}",
+        instance_name=f"seir-generator-{timestamp}",
         machine_type="e2-medium",
         image_family="debian-12",
         image_project="debian-cloud",
@@ -73,7 +87,8 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
         epsilon=params.epsilon,
         simulations=params.sims,
         days=params.days,
-        bucket='seir-output-bucket-2'
+        bucket='seir-output-bucket-2',
+        outfile=f'out-{timestamp}'
         )
     return timestamp
 
@@ -91,3 +106,30 @@ def stnp_model(params: Params, user: tuple[DocumentSnapshot, DocumentReference] 
                        cls=NumpyEncoder)
     return json_dump
     
+@app.post("/data")
+def create_compute(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+    try:
+        client = storage.Client()
+        bucket = client.bucket("seir-output-bucket-2")
+    except NotFound:
+        raise HTTPException(status_code=404, detail="Bucket not found.")
+    except GoogleAPICallError as e:
+        raise HTTPException(status_code=500, detail=f"Error accessing GCS: {str(e)}")
+
+    try:
+        blob = bucket.blob(f'out-{params.stamp}.json')
+
+        if not blob.exists():
+            raise HTTPException(status_code=404, detail=f"Data not found in the bucket.")
+        
+        content = blob.download_as_text()
+        if params.delete:
+            blob.delete()
+
+        return content
+    
+    except GoogleAPICallError as e:
+        raise HTTPException(status_code=500, detail=f"Error accessing blob: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{str(e)}")
+
