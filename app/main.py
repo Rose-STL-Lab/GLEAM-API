@@ -115,5 +115,5 @@ def create_compute(params: StampParams, user: tuple[DocumentSnapshot, DocumentRe
     except GoogleAPICallError as e:
         raise HTTPException(status_code=500, detail=f"Error accessing blob: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"{str(e)}")
 
