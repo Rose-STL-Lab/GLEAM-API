@@ -1,6 +1,6 @@
 import numpy as np
 import json
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, BackgroundTasks
 from pydantic import BaseModel
 from app.seir import seir, full_seir    
 from os import environ
@@ -180,7 +180,7 @@ def create_compute(params: CreateImageParams, user: tuple[DocumentSnapshot, Docu
     timestamp = str(int(time.time()))
 
 
-    output = create_instance_and_save_image(
+    BackgroundTasks.add(create_instance_and_save_image(
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
         instance_name=f"image-generator-{timestamp}",
@@ -191,7 +191,7 @@ def create_compute(params: CreateImageParams, user: tuple[DocumentSnapshot, Docu
         script_name= params.script_name,
         requirements_name= params.requirements_name,
         custom_image_name = params.image_name + "-"+ timestamp
-        )
+        ))
     return params.image_name + "-"+ timestamp
 
 
