@@ -108,11 +108,6 @@ def create_instance_with_docker(
 from google.cloud import compute_v1
 from google.oauth2 import service_account
 
-# Load credentials for the InstancesClient
-credentials = service_account.Credentials.from_service_account_file(
-    "C:/Users/00011/Downloads/quiet-fusion-440218-i2-58c9e4633660.json"
-)
-instances_client = compute_v1.InstancesClient(credentials=credentials)
 def create_instance_with_image(
     project_id: str,
     zone: str,
