@@ -1,0 +1,29 @@
+  # SERVICE_NAME = gleam-seir-api
+  # PROJECT_ID = epistorm-gleam-api
+  # REGION = us-west1
+  # $COMMIT_SHA: (secure hash alg) since the pipeline is  triggered by the git repo (i.e. push), cloud build will make a unique sha for each commit
+  steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/epistorm-gleam-api/gleam-seir-api:$COMMIT_SHA', '.']
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/epistorm-gleam-api/gleam-seir-api:$COMMIT_SHA']
+  # Run automated tests after building the image
+  # - name: 'gcr.io/cloud-builders/docker'
+  #  args: ['run', '--rm', 'gcr.io/epistorm-gleam-api/gleam-seir-api:$COMMIT_SHA', 'npm', 'test'] # npm test command executes tests as defined in the package.json
+
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+    - 'run'
+    - 'deploy'
+    - 'gleam-seir-api'
+    - '--image'
+    - 'gcr.io/epistorm-gleam-api/gleam-seir-api:$COMMIT_SHA'
+    - '--region'
+    - 'us-west1'
+  images:
+  - 'gcr.io/epistorm-gleam-api/gleam-seir-api:$COMMIT_SHA'
+  # create a build trigger
