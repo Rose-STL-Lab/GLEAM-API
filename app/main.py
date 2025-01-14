@@ -162,7 +162,7 @@ def create_compute(params: ComputeImageParams, user: tuple[DocumentSnapshot, Doc
         zone="us-central1-a",
         instance_name=f"seir-generator-{timestamp}",
         machine_type="e2-medium",
-        source_image= f"projects/epistorm/global/images/{params.image}",
+        source_image= f"projects/epistorm-gleam-api/global/images/{params.image}",
         beta=params.beta,
         epsilon=params.epsilon,
         simulations=params.sims,
