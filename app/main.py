@@ -7,6 +7,8 @@ from os import environ
 from app.auth import get_user
 from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
 from app.compute import create_instance_with_docker
+from app.compute import create_instance_with_image
+from app.compute import create_instance_and_save_image
 import time
 from app.dcrnn_model.dcrnn import DCRNNModel
 import torch
@@ -21,7 +23,22 @@ class Params(BaseModel):
     sims: int
     beta: float
     epsilon: float
-    
+
+
+
+class ComputeImageParams(BaseModel):
+    days: int
+    sims: int
+    beta: float
+    epsilon: float
+    image: str
+
+class CreateImageParams(BaseModel):
+    bucket_name: str
+    script_name: str
+    requirements_name: str
+    image_name: str
+
 class ListParams(BaseModel):
     days: int
     sims: int
@@ -132,4 +149,49 @@ def create_compute(params: StampParams, user: tuple[DocumentSnapshot, DocumentRe
         raise HTTPException(status_code=500, detail=f"Error accessing blob: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{str(e)}")
+    
+
+@app.post("/create_compute_with_image")
+def create_compute(params: ComputeImageParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+
+    timestamp = str(int(time.time()))
+
+
+    output = create_instance_with_image(
+        project_id="epistorm-gleam-api",
+        zone="us-central1-a",
+        instance_name=f"seir-generator-{timestamp}",
+        machine_type="e2-medium",
+        source_image= f"projects/epistorm/global/images/{params.image}",
+        beta=params.beta,
+        epsilon=params.epsilon,
+        simulations=params.sims,
+        days=params.days,
+        bucket='seir-output-bucket-2',
+        outfile=f'out-{timestamp}'
+        )
+    return timestamp
+
+
+
+@app.post("/create_image")
+def create_compute(params: CreateImageParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+
+    timestamp = str(int(time.time()))
+
+
+    output = create_instance_and_save_image(
+        project_id="epistorm-gleam-api",
+        zone="us-central1-a",
+        instance_name=f"image-generator-{timestamp}",
+        machine_type="e2-medium",
+        image_family="debian-12",
+        image_project="debian-cloud",
+        bucket_name= params.bucket_name,
+        script_name= params.script_name,
+        requirements_name= params.requirements_name,
+        custom_image_name = params.image_name + "-"+ timestamp
+        )
+    return params.image_name + "-"+ timestamp
+
 
