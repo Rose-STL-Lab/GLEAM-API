@@ -9,6 +9,10 @@
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/epistorm-gleam-api/gleam-seir-api:$COMMIT_SHA']
+  # Run automated tests after building the image
+  # - name: 'gcr.io/cloud-builders/docker'
+  #  args: ['run', '--rm', 'gcr.io/epistorm-gleam-api/gleam-seir-api:$COMMIT_SHA', 'npm', 'test'] # npm test command executes tests as defined in the package.json
+
   # Deploy container image to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
