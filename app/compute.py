@@ -105,9 +105,6 @@ def create_instance_with_docker(
     return instances_client.get(project=project_id, zone=zone, instance=instance_name)
 
 
-from google.cloud import compute_v1
-from google.oauth2 import service_account
-
 def create_instance_with_image(
     project_id: str,
     zone: str,
