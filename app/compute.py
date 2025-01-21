@@ -385,7 +385,7 @@ def create_instance_with_image_config(
     cd ..
     cd ..
     cd opt/myapp
-    sudo gsutil cp gs://scriptholder/{config}.json /opt/myapp/{config}
+    sudo gsutil cp gs://testscriptholder/{config}.json /opt/myapp/{config}
     source venv/bin/activate
     CONFIG_JSON=$(cat config.json)
     export DAYS=$(echo $CONFIG_JSON | jq -r '.variables.days')

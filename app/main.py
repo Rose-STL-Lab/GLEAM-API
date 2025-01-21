@@ -209,7 +209,7 @@ def create_image(params: ConfigParams, user: tuple[DocumentSnapshot, DocumentRef
     timestamp = str(int(time.time()))
 
 
-    upload_json_to_gcs(params.json_object, "scriptholder", f"config{timestamp}.json")
+    upload_json_to_gcs(params.json_object, "testscriptholder", f"config{timestamp}.json")
     return f"config{timestamp}.json"
 
 
