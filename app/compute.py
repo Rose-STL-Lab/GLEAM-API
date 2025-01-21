@@ -1,6 +1,9 @@
 print ("test")
 
 from google.cloud import compute_v1
+import json
+from google.cloud import storage
+
 
 print ("compute downloaded")
 
@@ -143,6 +146,7 @@ def create_instance_with_image(
     cd ..
     cd opt/myapp
     source venv/bin/activate
+    gsutil cp gs://your-bucket-name/configs/instance-config.yaml /tmp/config.yaml
     export BETA={beta} EPSILON={epsilon} SIMULATIONS={simulations} DAYS={days} GCS_BUCKET={bucket} OUTFILENAME={outfile}
     python main.py""" + """
     gcloud compute instances delete ${HOSTNAME} --delete-disks=all --zone=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | awk -F'/' '{print $4}') --quiet
@@ -324,3 +328,116 @@ sudo /opt/myapp/venv/bin/pip install -r requirements.txt
 
     return custom_image_name
 
+
+def upload_json_to_gcs(json_data, bucket_name, destination_blob_name):
+    """
+    Uploads a JSON object to a specified GCS bucket.
+
+    Args:
+    json_data (dict): The JSON data to be uploaded.
+    bucket_name (str): The name of the GCS bucket.
+    destination_blob_name (str): The destination path in the bucket (e.g., 'folder/file.json').
+
+    Returns:
+    str: A message indicating success or failure.
+    """
+
+    storage_client = storage.Client()
+    json_string = json.dumps(json_data)
+
+    bucket = storage_client.bucket(bucket_name)
+
+    blob = bucket.blob(destination_blob_name)
+
+    blob.upload_from_string(json_string, content_type='application/json')
+
+    return f"destination_blob_name"
+
+
+def create_instance_with_image_config(
+    project_id: str,
+    zone: str,
+    instance_name: str,
+    machine_type: str,
+    source_image: str,
+    bucket: str,
+    outfile: str,
+    config: str
+
+) -> compute_v1.Instance:
+    """
+    Creates a Compute Engine VM instance with full API access that pulls and runs a Docker container.
+
+    Args:
+        project_id: ID or number of the project you want to use.
+        zone: Name of the zone you want to check, for example: us-west3-b.
+        instance_name: Name of the new instance.
+        machine_type: Machine type for the VM, e.g., "e2-medium".
+        source_image: Full path to the source image, e.g., "projects/my-project/global/images/my-custom-image".
+        bucket: GCS bucket to use.
+        outfile: Output file name.
+        config: File name of config
+
+    Returns:
+        Instance object.
+    """
+    startup_script = f"""#!/bin/bash
+    cd ..
+    cd ..
+    cd opt/myapp
+    sudo gsutil cp gs://scriptholder/{config}.json /opt/myapp/{config}
+    source venv/bin/activate
+    CONFIG_JSON=$(cat config.json)
+    export DAYS=$(echo $CONFIG_JSON | jq -r '.variables.days')
+    export SIMS=$(echo $CONFIG_JSON | jq -r '.variables.sims')
+    export BETA=$(echo $CONFIG_JSON | jq -r '.variables.beta')
+    export EPSILON=$(echo $CONFIG_JSON | jq -r '.variables.epsilon')
+    export GCS_BUCKET={bucket} OUTFILENAME={outfile}
+    python main.py""" + """ gcloud compute instances delete ${HOSTNAME} --delete-disks=all --zone=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | awk -F'/' '{print $4}') --quiet
+  
+    """
+
+
+    metadata_items = [
+        compute_v1.Items(key="startup-script", value=startup_script)
+    ]
+
+    # Define the disk for the VM using the specified custom image
+    initialize_params = compute_v1.AttachedDiskInitializeParams(
+        source_image=source_image,
+        disk_size_gb=10,  # (we can make this a param in the future)
+        disk_type=f"zones/{zone}/diskTypes/pd-balanced"
+    )
+    disk = compute_v1.AttachedDisk(
+        boot=True,
+        auto_delete=True,
+        initialize_params=initialize_params
+    )
+    access_config = compute_v1.AccessConfig(name="External NAT", type_="ONE_TO_ONE_NAT")
+    network_interface = compute_v1.NetworkInterface(
+        name="global/networks/default",
+        access_configs=[access_config]
+    )
+
+    instance_resource = compute_v1.Instance(
+        name=instance_name,
+        machine_type=f"zones/{zone}/machineTypes/{machine_type}",
+        disks=[disk],
+        network_interfaces=[network_interface],
+        metadata=compute_v1.Metadata(items=metadata_items),
+        service_accounts=[
+            compute_v1.ServiceAccount(
+                email="default",
+                scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+        ]
+    )
+    instance_insert_request = compute_v1.InsertInstanceRequest(
+        project=project_id,
+        zone=zone,
+        instance_resource=instance_resource
+    )
+    operation = instances_client.insert(request=instance_insert_request)
+    operation.result()
+
+    return instances_client.get(project=project_id, zone=zone, instance=instance_name)
