@@ -22,6 +22,15 @@ class Params(BaseModel):
     beta: float
     epsilon: float
 
+
+class StressTestParams(BaseModel):
+    cpu: int
+    io: int
+    vm: int
+    vm_bytes: str
+    timeout: str
+    
+    
 class StressTestParams(BaseModel):
     cpu: int
     io: int
@@ -80,6 +89,7 @@ def multiple(params: ListParams, user: tuple[DocumentSnapshot, DocumentReference
 def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
     timestamp = str(int(time.time()))
+
 
     output = create_instance_with_docker(
         project_id="epistorm-gleam-api",
