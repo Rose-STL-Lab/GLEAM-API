@@ -103,3 +103,78 @@ def create_instance_with_docker(
     operation.result()  # Wait for the operation to complete
 
     return instances_client.get(project=project_id, zone=zone, instance=instance_name)
+
+def create_dummy_instance(
+    project_id: str,
+    zone: str,
+    instance_name: str,
+    machine_type: str,
+    cpu: int,
+    io: int,
+    vm: int,
+    vm_bytes: str,
+    timeout: str
+) -> compute_v1.Instance:
+    startup_script = f"""#!/bin/bash
+    IMAGE_NAME=$(curl http://metadata.google.internal/computeMetadata/v1/instance/attributes/image_name -H "Metadata-Flavor: Google")
+    sudo apt-get update
+    sudo apt-get install -y docker.io
+    sudo gcloud auth configure-docker
+    sudo docker docker run -ti --rm polinux/stress bash
+    stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
+    exit""" + """
+    zoneMetadata=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/zone" -H "Metadata-Flavor:Google")
+    IFS=$'/'
+    zoneMetadataSplit=($zoneMetadata)
+    ZONE="${zoneMetadataSplit[3]}"
+    docker run --entrypoint "gcloud" google/cloud-sdk:alpine compute instances delete ${HOSTNAME}  --delete-disks=all --zone=${ZONE}
+    """
+
+    metadata_items = [
+        compute_v1.Items(key="startup-script", value=startup_script)
+    ]
+
+    # Define the disk for the VM using Debian 12 Bookworm First One I Found that worked, Could be changed for different workloads
+    initialize_params = compute_v1.AttachedDiskInitializeParams(
+        source_image="projects/debian-cloud/global/images/debian-12-bookworm-v20241112",
+        disk_size_gb=10,  # Specify 10GB disk size
+        disk_type=f"zones/{zone}/diskTypes/pd-balanced" 
+    )
+    disk = compute_v1.AttachedDisk(
+        boot=True,
+        auto_delete=True,
+        initialize_params=initialize_params
+    )
+
+    # Define the network interface with an external IP Important for Downloading 
+    access_config = compute_v1.AccessConfig(name="External NAT", type_="ONE_TO_ONE_NAT")
+    network_interface = compute_v1.NetworkInterface(
+        name="global/networks/default",
+        access_configs=[access_config] 
+    )
+
+    # Define the instance
+    instance_resource = compute_v1.Instance(
+        name=instance_name,
+        machine_type=f"zones/{zone}/machineTypes/{machine_type}",
+        disks=[disk],
+        network_interfaces=[network_interface],
+        metadata=compute_v1.Metadata(items=metadata_items),
+        service_accounts=[
+            compute_v1.ServiceAccount(
+                email="default",
+                scopes=["https://www.googleapis.com/auth/cloud-platform"] # Important for Pulling Docker Image
+            )
+        ]
+    )
+
+    # Insert the instance
+    instance_insert_request = compute_v1.InsertInstanceRequest(
+        project=project_id,
+        zone=zone,
+        instance_resource=instance_resource
+    )
+    operation = instances_client.insert(request=instance_insert_request)
+    operation.result()  # Wait for the operation to complete
+
+    return instances_client.get(project=project_id, zone=zone, instance=instance_name)

@@ -6,7 +6,7 @@ from app.seir import seir, full_seir
 from os import environ
 from app.auth import get_user
 from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
-from app.compute import create_instance_with_docker
+from app.compute import create_instance_with_docker, create_dummy_instance
 import time
 from app.dcrnn_model.dcrnn import DCRNNModel
 import torch
@@ -21,6 +21,13 @@ class Params(BaseModel):
     sims: int
     beta: float
     epsilon: float
+
+class StressTestParams(BaseModel):
+    cpu: int
+    io: int
+    vm: int
+    vm_bytes: str
+    timeout: str
     
 class ListParams(BaseModel):
     days: int
@@ -74,7 +81,6 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
 
     timestamp = str(int(time.time()))
 
-
     output = create_instance_with_docker(
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
@@ -89,6 +95,24 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
         days=params.days,
         bucket='seir-output-bucket-2',
         outfile=f'out-{timestamp}'
+        )
+    return timestamp
+
+@app.post("/create_dummy_compute")
+def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+
+    timestamp = str(int(time.time()))
+    
+    output = create_dummy_instance(
+        project_id="epistorm-gleam-api",
+        zone="us-central1-a",
+        instance_name=f"stress-test-{timestamp}",
+        machine_type="e2-medium",
+        cpu= params.cpu,
+        io= params.io,
+        vm= params.vm,
+        vm_bytes= params.vm_bytes,
+        timeout= params.timeout
         )
     return timestamp
 
