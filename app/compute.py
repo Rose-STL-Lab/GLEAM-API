@@ -222,7 +222,7 @@ def create_instance_with_image(
     cd ..
     cd opt/myapp
     source venv/bin/activate
-    gsutil cp gs://your-bucket-name/configs/instance-config.yaml /tmp/config.yaml
+    gsutil cp gs://testscriptholder/configs/instance-config.yaml /tmp/config.yaml
     export BETA={beta} EPSILON={epsilon} SIMULATIONS={simulations} DAYS={days} GCS_BUCKET={bucket} OUTFILENAME={outfile}
     python main.py""" + """
     gcloud compute instances delete ${HOSTNAME} --delete-disks=all --zone=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | awk -F'/' '{print $4}') --quiet
@@ -284,7 +284,7 @@ def create_instance_and_save_image(
     image_family: str,
     image_project: str,
     bucket_name: str,
-    script_name: str,
+    folder_name: str,
     requirements_name: str,
     custom_image_name: str
 ) -> compute_v1.Instance:
@@ -309,18 +309,15 @@ def create_instance_and_save_image(
     """
     startup_script = f"""#!/bin/bash
 sudo apt-get update
-sudo apt-get install python3-pip gsutil
+sudo mkdir -p /opt/myapp/
+sudo chmod -R 755 /opt/myapp/{folder_name} 
 
-mkdir -p /opt/myapp/
-chmod -R 755 /opt/myapp/
-
-gsutil cp gs://{bucket_name}/{script_name} /opt/myapp/main.py
-gsutil cp gs://{bucket_name}/{requirements_name} /opt/myapp/requirements.txt
+sudo gsutil cp -r gs://{bucket_name}/{folder_name} /opt/myapp
+sudo gsutil cp gs://{bucket_name}/{folder_name}/{requirements_name} /opt/myapp/requirements.txt
 
 cd ..
 cd ..
 cd opt/myapp
-sudo apt install -y python3-pip
 sudo apt install -y python3.11-venv
 sudo python3 -m venv /opt/myapp/venv
 source venv/bin/activate
@@ -331,7 +328,7 @@ sudo /opt/myapp/venv/bin/pip install -r requirements.txt
     metadata_items = [
         compute_v1.Items(key="startup-script", value=startup_script)
     ]
-
+ 
     initialize_params = compute_v1.AttachedDiskInitializeParams(
         source_image=f"projects/{image_project}/global/images/family/{image_family}",
         disk_size_gb=10,
@@ -460,9 +457,9 @@ def create_instance_with_image_config(
     cd ..
     cd ..
     cd opt/myapp
-    sudo gsutil cp gs://testscriptholder/{config}.json /opt/myapp/{config}
+    sudo gsutil cp gs://testscriptholder/{config} /opt/myapp/{config}
     source venv/bin/activate
-    CONFIG_JSON=$(cat config.json)
+    CONFIG_JSON=$(cat {config})
     export DAYS=$(echo $CONFIG_JSON | jq -r '.variables.days')
     export SIMS=$(echo $CONFIG_JSON | jq -r '.variables.sims')
     export BETA=$(echo $CONFIG_JSON | jq -r '.variables.beta')
