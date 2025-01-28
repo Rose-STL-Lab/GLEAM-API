@@ -360,7 +360,6 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
             )
         ]
     )
-    time
 
     instances_client = compute_v1.InstancesClient()
     instance_insert_request = compute_v1.InsertInstanceRequest(
