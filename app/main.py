@@ -212,18 +212,19 @@ def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, Docume
     timestamp = str(int(time.time()))
 
 
-    BackgroundTasks.add_task(create_instance_and_save_image(
+    BackgroundTasks.add_task(
+        create_instance_and_save_image,
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
         instance_name=f"image-generator-{timestamp}",
         machine_type="e2-medium",
         image_family="debian-12",
         image_project="debian-cloud",
-        bucket_name= params.bucket_name,
-        folder_name= params.folder_name,
-        requirements_name= params.requirements_name,
-        custom_image_name = params.image_name + "-"+ timestamp
-        ))
+        bucket_name=params.bucket_name,
+        folder_name=params.folder_name,
+        requirements_name=params.requirements_name,
+        custom_image_name=params.image_name + "-" + timestamp,
+    )
     return params.image_name + "-"+ timestamp
 
 @app.post("/create_yaml")
