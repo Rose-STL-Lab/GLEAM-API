@@ -321,8 +321,7 @@ cd opt/myapp
 sudo apt install -y python3.11-venv
 sudo python3 -m venv /opt/myapp/venv
 source venv/bin/activate
-sudo /opt/myapp/venv/bin/pip install -r requirements.txt
-
+/opt/myapp/venv/bin/pip install -r requirements.txt
 """
 
     metadata_items = [
@@ -331,7 +330,7 @@ sudo /opt/myapp/venv/bin/pip install -r requirements.txt
  
     initialize_params = compute_v1.AttachedDiskInitializeParams(
         source_image=f"projects/{image_project}/global/images/family/{image_family}",
-        disk_size_gb=10,
+        disk_size_gb=50,
         disk_type=f"zones/{zone}/diskTypes/pd-balanced"
     )
     disk = compute_v1.AttachedDisk(
