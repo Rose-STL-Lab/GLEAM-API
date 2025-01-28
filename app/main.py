@@ -207,7 +207,9 @@ def create_compute_with_image(params: ComputeImageParams, user: tuple[DocumentSn
 
 
 @app.post("/create_image")
-def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user), background_tasks: BackgroundTasks = Depends()):
+def create_image(params: CreateImageParams,
+                 background_tasks: BackgroundTasks, 
+    user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
     timestamp = str(int(time.time()))
 
@@ -225,7 +227,6 @@ def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, Docume
         requirements_name=params.requirements_name,
         custom_image_name=params.image_name + "-" + timestamp,
     )
-
     return params.image_name + "-"+ timestamp
 
 @app.post("/create_yaml")
