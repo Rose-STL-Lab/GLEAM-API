@@ -323,7 +323,6 @@ sudo python3 -m venv /opt/myapp/venv
 source venv/bin/activate
 sudo /opt/myapp/venv/bin/pip install -r requirements.txt
 sudo /opt/myapp/venv/bin/pip install --upgrade pandas
-
 """
 
     metadata_items = [
@@ -369,7 +368,7 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
     )
     operation = instances_client.insert(request=instance_insert_request)
     operation.result()  # Wait for the operation to complete
-    time.sleep(80)
+    time.sleep(180)
 
     instances_client = compute_v1.InstancesClient()
     stop_request = compute_v1.StopInstanceRequest(
@@ -465,9 +464,8 @@ def create_instance_with_image_config(
     (cat {config}
     cd {script_location}
     export GCS_BUCKET={bucket} OUTFILENAME={outfile}
-    python main.py""" + """ gcloud compute instances delete ${HOSTNAME} --delete-disks=all --zone=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | awk -F'/' '{print $4}') --quiet
-  
-    """
+    python main.py""" + """
+    gcloud compute instances delete ${HOSTNAME} --delete-disks=all --zone=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | awk -F'/' '{print $4}') --quiet"""
 
 
     metadata_items = [
