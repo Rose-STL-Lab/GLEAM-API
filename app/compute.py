@@ -4,7 +4,7 @@ from google.cloud import compute_v1
 import json
 from google.cloud import storage
 import yaml
-
+import time
 
 print ("compute downloaded")
 
@@ -360,6 +360,7 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
             )
         ]
     )
+    time
 
     instances_client = compute_v1.InstancesClient()
     instance_insert_request = compute_v1.InsertInstanceRequest(
@@ -369,36 +370,37 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
     )
     operation = instances_client.insert(request=instance_insert_request)
     operation.result()  # Wait for the operation to complete
+    time.sleep(80)
 
-    # instances_client = compute_v1.InstancesClient()
-    # stop_request = compute_v1.StopInstanceRequest(
-    #     project=project_id,
-    #     zone=zone,
-    #     instance=instance_name
-    # )
-    # stop_operation = instances_client.stop(request=stop_request)
-    # stop_operation.result()  # Wait for the instance to stop
+    instances_client = compute_v1.InstancesClient()
+    stop_request = compute_v1.StopInstanceRequest(
+        project=project_id,
+        zone=zone,
+        instance=instance_name
+    )
+    stop_operation = instances_client.stop(request=stop_request)
+    stop_operation.result()  # Wait for the instance to stop
 
-    # # Create the custom image
-    # images_client = compute_v1.ImagesClient()
-    # image_request = compute_v1.InsertImageRequest(
-    #     project=project_id,
-    #     image_resource=compute_v1.Image(
-    #         name=custom_image_name,
-    #         source_disk=f"projects/{project_id}/zones/{zone}/disks/{instance_name}"
-    #     )
-    # )
-    # image_operation = images_client.insert(request=image_request)
-    # image_operation.result()  # Wait for the image creation to complete
+    # Create the custom image
+    images_client = compute_v1.ImagesClient()
+    image_request = compute_v1.InsertImageRequest(
+        project=project_id,
+        image_resource=compute_v1.Image(
+            name=custom_image_name,
+            source_disk=f"projects/{project_id}/zones/{zone}/disks/{instance_name}"
+        )
+    )
+    image_operation = images_client.insert(request=image_request)
+    image_operation.result()  # Wait for the image creation to complete
 
-    # delete_request = compute_v1.DeleteInstanceRequest(
-    #     project = project_id,
-    #     instance=instance_name,
-    #     zone=zone
-    # )
+    delete_request = compute_v1.DeleteInstanceRequest(
+        project = project_id,
+        instance=instance_name,
+        zone=zone
+    )
 
-    # instances_client.delete(request=delete_request)
-    # stop_operation.result()
+    instances_client.delete(request=delete_request)
+    stop_operation.result()
 
     return custom_image_name
 
