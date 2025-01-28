@@ -68,6 +68,7 @@ class ConfigParams(BaseModel):
 class ComputeWithConfig(BaseModel):
     config_file: str
     image: str
+    script_location: str
     
     
 class NumpyEncoder(json.JSONEncoder):
@@ -250,6 +251,7 @@ def create_image(params: ComputeWithConfig, user: tuple[DocumentSnapshot, Docume
         instance_name=f"seir-generator-{timestamp}",
         machine_type="e2-medium",
         source_image= f"projects/epistorm-gleam-api/global/images/{params.image}",
+        script_location=params.script_location,
         bucket='seir-output-bucket-2',
         outfile=f'out-{timestamp}',
         config= params.config_file

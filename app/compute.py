@@ -321,7 +321,8 @@ cd opt/myapp
 sudo apt install -y python3.11-venv
 sudo python3 -m venv /opt/myapp/venv
 source venv/bin/activate
-/opt/myapp/venv/bin/pip install -r requirements.txt
+sudo /opt/myapp/venv/bin/pip install -r requirements.txt
+sudo /opt/myapp/venv/bin/pip install --upgrade pandas
 """
 
     metadata_items = [
@@ -374,29 +375,29 @@ source venv/bin/activate
         zone=zone,
         instance=instance_name
     )
-    # stop_operation = instances_client.stop(request=stop_request)
-    # stop_operation.result()  # Wait for the instance to stop
+    stop_operation = instances_client.stop(request=stop_request)
+    stop_operation.result()  # Wait for the instance to stop
 
-    # # Create the custom image
-    # images_client = compute_v1.ImagesClient()
-    # image_request = compute_v1.InsertImageRequest(
-    #     project=project_id,
-    #     image_resource=compute_v1.Image(
-    #         name=custom_image_name,
-    #         source_disk=f"projects/{project_id}/zones/{zone}/disks/{instance_name}"
-    #     )
-    # )
-    # image_operation = images_client.insert(request=image_request)
-    # image_operation.result()  # Wait for the image creation to complete
+    # Create the custom image
+    images_client = compute_v1.ImagesClient()
+    image_request = compute_v1.InsertImageRequest(
+        project=project_id,
+        image_resource=compute_v1.Image(
+            name=custom_image_name,
+            source_disk=f"projects/{project_id}/zones/{zone}/disks/{instance_name}"
+        )
+    )
+    image_operation = images_client.insert(request=image_request)
+    image_operation.result()  # Wait for the image creation to complete
 
-    # delete_request = compute_v1.DeleteInstanceRequest(
-    #     project = project_id,
-    #     instance=instance_name,
-    #     zone=zone
-    # )
+    delete_request = compute_v1.DeleteInstanceRequest(
+        project = project_id,
+        instance=instance_name,
+        zone=zone
+    )
 
-    # instances_client.delete(request=delete_request)
-    # stop_operation.result()
+    instances_client.delete(request=delete_request)
+    stop_operation.result()
 
     return custom_image_name
 
@@ -431,6 +432,7 @@ def create_instance_with_image_config(
     instance_name: str,
     machine_type: str,
     source_image: str,
+    script_location: str,
     bucket: str,
     outfile: str,
     config: str
@@ -459,6 +461,7 @@ def create_instance_with_image_config(
     sudo gsutil cp gs://testscriptholder/{config} /opt/myapp/{config}
     source venv/bin/activate
     (cat {config}
+    cd {script_location}
     export GCS_BUCKET={bucket} OUTFILENAME={outfile}
     python main.py""" + """ gcloud compute instances delete ${HOSTNAME} --delete-disks=all --zone=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | awk -F'/' '{print $4}') --quiet
   
@@ -472,7 +475,7 @@ def create_instance_with_image_config(
     # Define the disk for the VM using the specified custom image
     initialize_params = compute_v1.AttachedDiskInitializeParams(
         source_image=source_image,
-        disk_size_gb=10,  # (we can make this a param in the future)
+        disk_size_gb=50,  # (we can make this a param in the future)
         disk_type=f"zones/{zone}/diskTypes/pd-balanced"
     )
     disk = compute_v1.AttachedDisk(
