@@ -207,12 +207,12 @@ def create_compute_with_image(params: ComputeImageParams, user: tuple[DocumentSn
 
 
 @app.post("/create_image")
-def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user), background_tasks: BackgroundTasks = Depends()):
 
     timestamp = str(int(time.time()))
 
 
-    BackgroundTasks.add_task(
+    background_tasks.add_task(
         create_instance_and_save_image,
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
@@ -225,6 +225,7 @@ def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, Docume
         requirements_name=params.requirements_name,
         custom_image_name=params.image_name + "-" + timestamp,
     )
+
     return params.image_name + "-"+ timestamp
 
 @app.post("/create_yaml")
