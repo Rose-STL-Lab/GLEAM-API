@@ -9,7 +9,7 @@ from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
 from app.compute import create_instance_with_docker, create_dummy_instance
 from app.compute import create_instance_with_image
 from app.compute import create_instance_and_save_image
-from app.compute import upload_json_to_gcs
+from app.compute import upload_yaml_to_gcs
 from app.compute import create_instance_with_image_config
 import time
 from app.dcrnn_model.dcrnn import DCRNNModel
@@ -226,14 +226,14 @@ def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, Docume
         ))
     return params.image_name + "-"+ timestamp
 
-@app.post("/create_json")
+@app.post("/create_yaml")
 def create_image(params: ConfigParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
     timestamp = str(int(time.time()))
 
 
-    upload_json_to_gcs(params.json_object, "testscriptholder", f"config{timestamp}.json")
-    return f"config{timestamp}.json"
+    upload_yaml_to_gcs(params.json_object, "testscriptholder", f"config{timestamp}.yaml")
+    return f"config{timestamp}.yaml"
 
 
 @app.post("/compute_with_config")

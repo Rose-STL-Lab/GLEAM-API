@@ -3,6 +3,7 @@ print ("test")
 from google.cloud import compute_v1
 import json
 from google.cloud import storage
+import yaml
 
 
 print ("compute downloaded")
@@ -404,29 +405,28 @@ sudo /opt/myapp/venv/bin/pip install -r requirements.txt
     return custom_image_name
 
 
-def upload_json_to_gcs(json_data, bucket_name, destination_blob_name):
+def upload_yaml_to_gcs(yaml_data: dict, bucket_name: str, destination_blob_name: str):
     """
-    Uploads a JSON object to a specified GCS bucket.
+    Uploads a YAML object to a specified GCS bucket.
 
     Args:
-    json_data (dict): The JSON data to be uploaded.
-    bucket_name (str): The name of the GCS bucket.
-    destination_blob_name (str): The destination path in the bucket (e.g., 'folder/file.json').
+        yaml_data (dict): The parsed YAML data.
+        bucket_name (str): The name of the GCS bucket.
+        destination_blob_name (str): The destination path in the bucket (e.g., 'folder/file.yaml').
 
     Returns:
-    str: A message indicating success or failure.
+        str: A message indicating success.
     """
 
     storage_client = storage.Client()
-    json_string = json.dumps(json_data)
+    yaml_string = yaml.dump(yaml_data, default_flow_style=False)
 
     bucket = storage_client.bucket(bucket_name)
-
     blob = bucket.blob(destination_blob_name)
 
-    blob.upload_from_string(json_string, content_type='application/json')
+    blob.upload_from_string(yaml_string, content_type="application/x-yaml")
 
-    return f"destination_blob_name"
+    return f"File {destination_blob_name} uploaded to {bucket_name}."
 
 
 def create_instance_with_image_config(
