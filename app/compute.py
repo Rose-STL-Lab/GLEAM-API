@@ -459,11 +459,7 @@ def create_instance_with_image_config(
     cd opt/myapp
     sudo gsutil cp gs://testscriptholder/{config} /opt/myapp/{config}
     source venv/bin/activate
-    CONFIG_JSON=$(cat {config})
-    export DAYS=$(echo $CONFIG_JSON | jq -r '.variables.days')
-    export SIMS=$(echo $CONFIG_JSON | jq -r '.variables.sims')
-    export BETA=$(echo $CONFIG_JSON | jq -r '.variables.beta')
-    export EPSILON=$(echo $CONFIG_JSON | jq -r '.variables.epsilon')
+    (cat {config}
     export GCS_BUCKET={bucket} OUTFILENAME={outfile}
     python main.py""" + """ gcloud compute instances delete ${HOSTNAME} --delete-disks=all --zone=$(curl -H "Metadata-Flavor:Google" http://metadata.google.internal/computeMetadata/v1/instance/zone | awk -F'/' '{print $4}') --quiet
   

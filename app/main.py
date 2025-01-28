@@ -220,7 +220,7 @@ def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, Docume
         image_family="debian-12",
         image_project="debian-cloud",
         bucket_name= params.bucket_name,
-        folder_name= params.script_name,
+        folder_name= params.folder_name,
         requirements_name= params.requirements_name,
         custom_image_name = params.image_name + "-"+ timestamp
         ))
