@@ -212,7 +212,7 @@ def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, Docume
     timestamp = str(int(time.time()))
 
 
-    BackgroundTasks.add(create_instance_and_save_image(
+    BackgroundTasks.add_task(create_instance_and_save_image(
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
         instance_name=f"image-generator-{timestamp}",
