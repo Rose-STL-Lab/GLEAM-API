@@ -4,3 +4,4 @@ __pycache__/
 app/secrets/
 Specifications/
 compute_api/
+app/gleam_ml/data/

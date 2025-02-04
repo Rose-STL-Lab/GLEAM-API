@@ -18,6 +18,11 @@ from google.cloud import storage
 from google.cloud.exceptions import NotFound
 from google.api_core.exceptions import GoogleAPICallError
 from fastapi import HTTPException
+from app.gleam_ml.dcrnn_supervisor import DCRNNSupervisor
+import yaml
+from app.gleam_ml.lib.utils import load_graph_data
+from app.gleam_ml.lib import utils
+
 
 
 class Params(BaseModel):
@@ -42,7 +47,7 @@ class ComputeImageParams(BaseModel):
 
 class CreateImageParams(BaseModel):
     bucket_name: str
-    script_name: str
+    folder_name: str
     requirements_name: str
     image_name: str
 
@@ -68,6 +73,7 @@ class ConfigParams(BaseModel):
 class ComputeWithConfig(BaseModel):
     config_file: str
     image: str
+    script_location: str
     
     
 class NumpyEncoder(json.JSONEncoder):
@@ -154,6 +160,27 @@ def stnp_model(params: Params, user: tuple[DocumentSnapshot, DocumentReference] 
     json_dump = json.dumps({"train_set": output}, 
                        cls=NumpyEncoder)
     return json_dump
+
+@app.post("/gleam_ml")
+def gleam_ml(params: Params):
+    print("started gleam")
+    model_tar = torch.load("app/gleam_ml/model_epo101.tar")
+    with open("app/gleam_ml/dcrnn_cov.yaml") as f:
+        supervisor_config = yaml.safe_load(f)
+
+        graph_pkl_filename = supervisor_config['data'].get('graph_pkl_filename')
+        sensor_ids, sensor_id_to_ind, adj_mx = load_graph_data(graph_pkl_filename)
+        i=1
+        max_itr = 12 #12
+        # data, search_data_x, search_data_y = utils.load_dataset(**supervisor_config.get('data'))
+        supervisor = DCRNNSupervisor(random_seed=i, iteration=11, max_itr = max_itr, 
+                adj_mx=adj_mx, **model_tar)
+    supervisor.epoch_num = 101
+    supervisor.load_model()
+    model = supervisor.dcrnn_model
+    model(np.array([0.9612716735303716, 1.0, 1.0, 1.0, 1.0, 1.0, 0.99, 1.0, 1.0, 1.7]),None,None,None,test=True,z_mean_all=supervisor.z_mean_all,z_var_temp_all=supervisor.z_var_temp_all)
+    return 
+
     
 @app.post("/data")
 def get_data(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
@@ -207,23 +234,26 @@ def create_compute_with_image(params: ComputeImageParams, user: tuple[DocumentSn
 
 
 @app.post("/create_image")
-def create_image(params: CreateImageParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+def create_image(params: CreateImageParams,
+                 background_tasks: BackgroundTasks, 
+    user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
     timestamp = str(int(time.time()))
 
 
-    BackgroundTasks.add(create_instance_and_save_image(
+    background_tasks.add_task(
+        create_instance_and_save_image,
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
         instance_name=f"image-generator-{timestamp}",
         machine_type="e2-medium",
         image_family="debian-12",
         image_project="debian-cloud",
-        bucket_name= params.bucket_name,
-        script_name= params.script_name,
-        requirements_name= params.requirements_name,
-        custom_image_name = params.image_name + "-"+ timestamp
-        ))
+        bucket_name=params.bucket_name,
+        folder_name=params.folder_name,
+        requirements_name=params.requirements_name,
+        custom_image_name=params.image_name + "-" + timestamp,
+    )
     return params.image_name + "-"+ timestamp
 
 @app.post("/create_yaml")
@@ -247,6 +277,7 @@ def create_image(params: ComputeWithConfig, user: tuple[DocumentSnapshot, Docume
         instance_name=f"seir-generator-{timestamp}",
         machine_type="e2-medium",
         source_image= f"projects/epistorm-gleam-api/global/images/{params.image}",
+        script_location=params.script_location,
         bucket='seir-output-bucket-2',
         outfile=f'out-{timestamp}',
         config= params.config_file

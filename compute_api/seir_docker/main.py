@@ -108,5 +108,5 @@ if __name__ == '__main__':
         json.dump(output_data, f)
 
     # Upload to Google Cloud Storage
-    gcs_bucket = os.getenv("GCS_BUCKET", "seir-output-bucket")
+    gcs_bucket = os.getenv("GCS_BUCKET", "seir-output-bucket-2")
     upload_to_gcs(gcs_bucket, output_file, f"{output_file_name}.json")
