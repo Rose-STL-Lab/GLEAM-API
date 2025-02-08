@@ -461,7 +461,9 @@ def create_instance_with_image_config(
     cd opt/myapp
     sudo gsutil cp gs://testscriptholder/{config} /opt/myapp/{config}
     source venv/bin/activate
-    (cat {config}
+    sudo /opt/myapp/venv/bin/pip install google-cloud-storage
+    sudo /opt/myapp/venv/bin/pip install --upgrade pandas
+    cat {config}
     cd {script_location}
     export GCS_BUCKET={bucket} OUTFILENAME={outfile}
     python main.py""" + """
