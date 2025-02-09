@@ -7,7 +7,11 @@ The goal of this project is to create an API so users can access the GLEAM simul
 The API is built using FastAPI and depending on the branch, has a varying amount of endpoints. Main has a single endpoint that only takes in one set of parameters. Multiple takes in various sets of parameters. API Key has API key authentication. Gcloud has google cloud specific additions to the API. Async_api has a simple NP model attached that can communicate with the api when it is launched.
 
 Liam and Kyla worked extensively on the compute engine creation logic, including the data pipeline.
-Alaa and Ethan handled the authorization and other api logistics, they also contributed to integrating endpoints
+
+
+Alaa and Ethan handled the authorization and other api logistics, they also contributed to integrating endpoints.
+
+
 Annirudh and Manav worked deeply on the Machine Learning aspect of our project and getting our surrogate model hosted on the cloud.
 
 
@@ -22,9 +26,9 @@ This FastAPI-based API provides endpoints for running LEAM simulations, creating
   - Retrieves user information and updates the number of runs this month.
   - **Dependencies:** `get_user`
 
-### **LEAM Simulations**
+### **Simulations**
 - `POST /original`
-  - Runs a standard LEAM simulation.
+  - Runs a standard SEIR simulation.
   - **Parameters:**
     - `days` (int)
     - `sims` (int)
@@ -33,7 +37,7 @@ This FastAPI-based API provides endpoints for running LEAM simulations, creating
   - **Returns:** JSON with simulation results.
 
 - `POST /multiple`
-  - Runs a LEAM simulation for multiple beta-epsilon parameter pairs.
+  - Runs a SEIR simulation for multiple beta-epsilon parameter pairs.
   - **Parameters:**
     - `days` (int)
     - `sims` (int)
