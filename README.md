@@ -2,69 +2,108 @@
 
 ## Description
 
-The goal of this project is to create an API so users can access the GLEAM simulation model and data without having to run the simulation on their local machine. This is a basic version of the API that will be used to connect the gleam model to machine learning models over the web. Instead of having a the more Complex GLEAM model accessed in this API, we instead are using the placerholder SEIR model located in SEIR.py. There are various branches on this repository that each correspond to different objectives and explorations that we have done. 
+The goal of this project is to create an API so users can access the GLEAM simulation model and data without having to run the simulation on their local machine. This is a basic version of the API that will be used to connect the gleam model to machine learning models over the web. Instead of having a the more Complex GLEAM model accessed in this API, we instead are using the placerholder LEAM US model. There are various branches on this repository that each correspond to different objectives and explorations that we have done. 
 
 The API is built using FastAPI and depending on the branch, has a varying amount of endpoints. Main has a single endpoint that only takes in one set of parameters. Multiple takes in various sets of parameters. API Key has API key authentication. Gcloud has google cloud specific additions to the API. Async_api has a simple NP model attached that can communicate with the api when it is launched.
 
-Ethan and Anirudh mainly worked on the Async_Api branch.
-Kyla and Liam mainly worked on the gcloud branch.
-Alaa and Manav mainly worked on the api_key branch.
+Liam and Kyla worked extensively on the compute engine creation logic, including the data pipeline.
+Alaa and Ethan handled the authorization and other api logistics, they also contributed to integrating endpoints
+Annirudh and Manav worked deeply on the Machine Learning aspect of our project and getting our surrogate model hosted on the cloud.
 
-For the final project submission, Anirudh worked on the branch clean_code. Manav worked on the branch container_v1. They both ) and combined the work from both branches (cleaned_code's containerization work is directly taken from container_v1) and deployed it to the cloud. 
 
-## Set Up
+# LEAM Simulation API
 
-Run this command to install libraries (For some branches like the machine learning one, some libraries like tensorflow may not be installed)
+This FastAPI-based API provides endpoints for running LEAM simulations, creating compute instances, and managing simulation data. It integrates with Google Cloud for compute and storage.
 
-```console
-pip install -r requirements.txt
-```
-Run this command to launch server
+## Endpoints
 
-```console
-uvicorn main:app -- reload
-```
+### **User Authentication**
+- `GET /`
+  - Retrieves user information and updates the number of runs this month.
+  - **Dependencies:** `get_user`
 
-## Calling the API endpoint
+### **LEAM Simulations**
+- `POST /original`
+  - Runs a standard LEAM simulation.
+  - **Parameters:**
+    - `days` (int)
+    - `sims` (int)
+    - `beta` (float)
+    - `epsilon` (float)
+  - **Returns:** JSON with simulation results.
 
-Currently, the code for this api is deployed on google cloud at the link [https://gleam-seir-api-883627921778.us-west1.run.app](https://gleam-seir-api-883627921778.us-west1.run.app). In order to call the API however, one needs an API key to put in the header of their request. This can be obtained through asking the owner of the repository for one. There are currently three endpoints in the api. These endpoints are all relative to the original url.
+- `POST /multiple`
+  - Runs a LEAM simulation for multiple beta-epsilon parameter pairs.
+  - **Parameters:**
+    - `days` (int)
+    - `sims` (int)
+    - `beta_epsilon` (list of floats)
+  - **Returns:** JSON with simulation results.
 
-The root endpoint (/) returns information about the user and is a get request.
+### **Compute Management**
+- `POST /create_compute`
+  - Creates a compute instance to run LEAM simulations using Docker.
+  - **Parameters:**
+    - `days`, `sims`, `beta`, `epsilon`
+  - **Returns:** Timestamp of the created instance.
 
-The original endpoint (/original) returns data from the seir simulation based off of a set of parameters. It is a post request and requires a json in the payload that looks as follows:
+- `POST /create_dummy_compute`
+  - Creates a dummy stress-test compute instance.
+  - **Parameters:**
+    - `cpu`, `io`, `vm`, `vm_bytes`, `timeout`
+  - **Returns:** Timestamp of the created instance.
 
-```yaml
-{
-    days: 101,
-    sims: 30,
-    beta: 1.1,
-    epsilon: 0.25,
-}
-```
-With parameters of the type
-```yaml
-{
-    days: int,
-    sims: int,
-    beta: float,
-    epsilon: float,
-}
-```
+- `POST /create_compute_with_image`
+  - Creates a compute instance using a pre-configured image.
+  - **Parameters:**
+    - `days`, `sims`, `beta`, `epsilon`, `image`
+  - **Returns:** Timestamp of the created instance.
 
-The multiple endpoint (/multiple) returns sets data from the seir simulation based off of a list of parameters. The beta_epislon parameter is the same as the beta and epsilon from above except compressed into a list with the beta parameter coming first. It is a post request and requires a json in the payload that looks as follows:
+- `POST /create_image`
+  - Creates a new VM image in Google Cloud.
+  - **Parameters:**
+    - `bucket_name`, `folder_name`, `requirements_name`, `image_name`
+  - **Returns:** Image name with timestamp.
 
-```yaml
-{
-    days: 101,
-    sims: 30,
-    beta_epsilon: [[1.1,0.25],[1.2,0.26]],
-}
-```
-With parameters of the type
-```yaml
-{
-    days: int,
-    sims: int,
-    beta_epsilon: list,
-}
-```
+### **Machine Learning Models**
+- `POST /stnp_model`
+  - Runs the STNP model using a trained DCRNN model.
+  - **Parameters:** `days`, `sims`, `beta`, `epsilon`
+  - **Returns:** JSON with model predictions.
+
+- `POST /gleam_ml`
+  - Runs a GLEAM ML model using a pre-trained DCRNN supervisor.
+  - **Parameters:** `days`, `sims`, `beta`, `epsilon`
+  - **Returns:** Model inference results.
+
+### **Data Management**
+- `POST /data`
+  - Retrieves or deletes simulation data from Google Cloud Storage.
+  - **Parameters:**
+    - `stamp` (str): Identifier for the data file.
+    - `delete` (bool): Whether to delete the file after retrieval.
+  - **Returns:** JSON with simulation data.
+
+- `POST /create_yaml`
+  - Uploads a YAML configuration to Google Cloud Storage.
+  - **Parameters:**
+    - `json_object` (dict)
+  - **Returns:** Confirmation message.
+
+## Key Dependencies
+
+(more can be found in the requirements.txt)
+
+- FastAPI
+- NumPy
+- Google Cloud SDK (Firestore, Storage)
+- PyTorch
+- YAML
+
+## Usage
+1. Install dependencies: `pip install -r requirements.txt`
+2. Run the API: `uvicorn app.main:app --reload`
+3. Use an API client (e.g., Postman) to interact with the endpoints.
+
+This API supports cloud-based LEAM simulations and integrates with machine learning models for advanced epidemiological forecasting.
+
