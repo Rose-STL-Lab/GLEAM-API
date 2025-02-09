@@ -68,6 +68,12 @@ This FastAPI-based API provides endpoints for running LEAM simulations, creating
   - **Parameters:**
     - `bucket_name`, `folder_name`, `requirements_name`, `image_name`
   - **Returns:** Image name with timestamp.
+ 
+- `POST /compute_with_config`
+  - Preferred method for running simulations. Runs LEAM with a given config and optional extra data
+  - **Parameters:**
+    - `bucket_name`, `folder_name`, `requirements_name`, `image_name`
+  - **Returns:** Image name with timestamp.
 
 ### **Machine Learning Models**
 - `POST /stnp_model`
