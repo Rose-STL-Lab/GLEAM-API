@@ -12,7 +12,7 @@ Liam and Kyla worked extensively on the compute engine creation logic, including
 Alaa and Ethan handled the authorization and other api logistics, they also contributed to integrating endpoints.
 
 
-Annirudh and Manav worked deeply on the Machine Learning aspect of our project and getting our surrogate model hosted on the cloud.
+Annirudh and Manav worked deeply on the Machine Learning aspect of our project and getting our surrogate model hosted on the cloud - code for the predictions can be found here - https://github.com/aindraga/Leam-US.
 
 
 # LEAM Simulation API
