@@ -11,6 +11,7 @@ from app.compute import create_instance_with_image
 from app.compute import create_instance_and_save_image
 from app.compute import upload_yaml_to_gcs
 from app.compute import create_instance_with_image_config
+from app.compute import julia_create_instance_with_image_config
 import time
 from app.dcrnn_model.dcrnn import DCRNNModel
 import torch
@@ -294,7 +295,7 @@ def julia_create_image(params: CreateImageParams,
 
 
     background_tasks.add_task(
-        create_instance_and_save_image,
+        julia_create_instance_and_save_image,
         project_id="epistorm-gleam-api",
         zone="us-central1-a",
         instance_name=f"image-generator-{timestamp}",
