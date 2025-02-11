@@ -11,6 +11,7 @@ from app.compute import create_instance_with_image
 from app.compute import create_instance_and_save_image
 from app.compute import upload_yaml_to_gcs
 from app.compute import create_instance_with_image_config
+from app.compute import julia_create_instance_and_save_image
 import time
 from app.dcrnn_model.dcrnn import DCRNNModel
 import torch
@@ -49,6 +50,11 @@ class CreateImageParams(BaseModel):
     bucket_name: str
     folder_name: str
     requirements_name: str
+    image_name: str
+
+class JuliaImageParams(BaseModel):
+    bucket_name: str
+    folder_name: str
     image_name: str
 
 class ListParams(BaseModel):
@@ -306,3 +312,27 @@ def create_image(params: ComputeWithConfig, user: tuple[DocumentSnapshot, Docume
     return timestamp
 
 
+@app.post("/julia_create_image")
+def julia_create_image(params: JuliaImageParams,
+                 background_tasks: BackgroundTasks, 
+    user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+
+    timestamp = str(int(time.time()))
+
+
+    background_tasks.add_task(
+        julia_create_instance_and_save_image,
+        project_id="epistorm-gleam-api",
+        zone="us-central1-a",
+        instance_name=f"image-generator-{timestamp}",
+        machine_type="e2-medium",
+        image_family="debian-12",
+        image_project="debian-cloud",
+        bucket_name=params.bucket_name,
+        folder_name=params.folder_name,
+        custom_image_name=params.image_name + "-" + timestamp,
+    )
+    return params.image_name + "-"+ timestamp
+
+
+#just a test

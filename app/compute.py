@@ -486,7 +486,9 @@ def create_instance_with_image_config(
     cd opt/myapp
     sudo gsutil cp gs://testscriptholder/{config} /opt/myapp/{config}
     source venv/bin/activate
-    (cat {config}
+    sudo /opt/myapp/venv/bin/pip install google-cloud-storage
+    sudo /opt/myapp/venv/bin/pip install --upgrade pandas
+    cat {config}
     cd {script_location}
     export GCS_BUCKET={bucket} OUTFILENAME={outfile}
     python main.py""" + """
@@ -536,3 +538,150 @@ def create_instance_with_image_config(
     operation.result()
 
     return instances_client.get(project=project_id, zone=zone, instance=instance_name)
+
+
+
+def julia_create_instance_and_save_image(
+    project_id: str,
+    zone: str,
+    instance_name: str,
+    machine_type: str,
+    image_family: str,
+    image_project: str,
+    bucket_name: str,
+    folder_name: str, 
+    custom_image_name: str
+) -> str:
+    """
+    Creates a Compute Engine VM instance, sets up a Julia environment, installs dependencies,
+    verifies the setup, and saves the instance as a custom image.
+
+    Args:
+        project_id: GCP project ID.
+        zone: Compute Engine zone, e.g., "us-west3-b".
+        instance_name: Name of the new instance.
+        machine_type: Machine type, e.g., "e2-medium".
+        image_family: Image family for the VM OS, e.g., "debian-12".
+        image_project: Google Cloud project hosting the OS image.
+        bucket_name: GCP Storage bucket containing the Julia scripts.
+        folder_name: Folder in the bucket with Julia scripts.
+        custom_image_name: Name of the custom image to create.
+
+    Returns:
+        The name of the created custom image.
+    """
+
+    startup_script = f"""#!/bin/bash
+# Update and install necessary tools
+cd ..
+cd ..
+cd opt/myapp
+sudo apt-get update
+sudo apt-get install -y wget curl software-properties-common
+
+# Install Julia
+JULIA_VERSION="1.9.3"  # Update if needed
+JULIA_TAR="julia-$JULIA_VERSION-linux-x86_64.tar.gz"
+JULIA_DIR="/opt/julia"
+
+sudo mkdir -p $JULIA_DIR
+cd /tmp
+wget https://julialang-s3.julialang.org/bin/linux/x64/1.9/$JULIA_TAR
+sudo tar -xzf $JULIA_TAR -C $JULIA_DIR --strip-components 1
+rm $JULIA_TAR
+echo "export PATH=$JULIA_DIR/bin:\\$PATH" | sudo tee -a /etc/profile
+source /etc/profile
+
+# Create and set up application directory
+sudo mkdir -p /opt/myapp/{folder_name}
+sudo chmod -R 755 /opt/myapp/{folder_name}
+
+# Download Julia project files
+sudo gsutil cp -r gs://{bucket_name}/{folder_name} /opt/myapp
+sudo gsutil cp gs://{bucket_name}/{folder_name}/Project.toml /opt/myapp/Project.toml
+sudo gsutil cp gs://{bucket_name}/{folder_name}/Manifest.toml /opt/myapp/Manifest.toml
+
+# Initialize Julia environment and install dependencies
+cd /opt/myapp
+echo 'using Pkg; Pkg.activate("."); Pkg.instantiate()' | $JULIA_DIR/bin/julia
+
+# Verify installation
+echo 'using Pkg; Pkg.status()' | $JULIA_DIR/bin/julia
+"""
+
+    metadata_items = [
+        compute_v1.Items(key="startup-script", value=startup_script)
+    ]
+
+    initialize_params = compute_v1.AttachedDiskInitializeParams(
+        source_image=f"projects/{image_project}/global/images/family/{image_family}",
+        disk_size_gb=50,
+        disk_type=f"zones/{zone}/diskTypes/pd-balanced"
+    )
+    disk = compute_v1.AttachedDisk(
+        boot=True,
+        auto_delete=True,
+        initialize_params=initialize_params
+    )
+
+    access_config = compute_v1.AccessConfig(name="External NAT", type_="ONE_TO_ONE_NAT")
+    network_interface = compute_v1.NetworkInterface(
+        name="global/networks/default",
+        access_configs=[access_config]
+    )
+
+    instance_resource = compute_v1.Instance(
+        name=instance_name,
+        machine_type=f"zones/{zone}/machineTypes/{machine_type}",
+        disks=[disk],
+        network_interfaces=[network_interface],
+        metadata=compute_v1.Metadata(items=metadata_items),
+        service_accounts=[
+            compute_v1.ServiceAccount(
+                email="default",
+                scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+        ]
+    )
+
+    # Create the instance
+    instances_client = compute_v1.InstancesClient()
+    instance_insert_request = compute_v1.InsertInstanceRequest(
+        project=project_id,
+        zone=zone,
+        instance_resource=instance_resource
+    )
+    operation = instances_client.insert(request=instance_insert_request)
+    operation.result()  # Wait for instance creation
+    # time.sleep(180)  # Wait for setup to complete
+
+    # # Stop the instance before creating an image
+    # stop_request = compute_v1.StopInstanceRequest(
+    #     project=project_id,
+    #     zone=zone,
+    #     instance=instance_name
+    # )
+    # stop_operation = instances_client.stop(request=stop_request)
+    # stop_operation.result()  # Wait for instance to stop
+
+    # # Create a custom image
+    # images_client = compute_v1.ImagesClient()
+    # image_request = compute_v1.InsertImageRequest(
+    #     project=project_id,
+    #     image_resource=compute_v1.Image(
+    #         name=custom_image_name,
+    #         source_disk=f"projects/{project_id}/zones/{zone}/disks/{instance_name}"
+    #     )
+    # )
+    # image_operation = images_client.insert(request=image_request)
+    # image_operation.result()  # Wait for image creation
+
+    # # Delete the instance after creating the image
+    # delete_request = compute_v1.DeleteInstanceRequest(
+    #     project=project_id,
+    #     instance=instance_name,
+    #     zone=zone
+    # )
+    # instances_client.delete(request=delete_request)
+
+    return custom_image_name
