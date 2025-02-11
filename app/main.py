@@ -11,7 +11,7 @@ from app.compute import create_instance_with_image
 from app.compute import create_instance_and_save_image
 from app.compute import upload_yaml_to_gcs
 from app.compute import create_instance_with_image_config
-from app.compute import julia_create_instance_with_image_config
+from app.compute import julia_create_instance_and_save_image
 import time
 from app.dcrnn_model.dcrnn import DCRNNModel
 import torch
