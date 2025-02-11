@@ -185,7 +185,6 @@ class DCRNNModel(nn.Module, Seq2SeqAttrs):
         outputs = []
 
         for t in range(self.seq_len):
-            print([decoder_inputs[t:t+1],zs[t:t+1], decoder_output])
             print([x.shape for x in [decoder_inputs[t:t+1],zs[t:t+1], decoder_output]])
             decoder_output_interal, decoder_hidden_state = self.rnn_decoder(torch.cat([decoder_inputs[t:t+1],zs[t:t+1], decoder_output],dim=-1), decoder_hidden_state)
             decoder_output = self.fc(self.relu(decoder_output_interal))
@@ -244,11 +243,10 @@ class DCRNNModel(nn.Module, Seq2SeqAttrs):
         else:
             # h_t_decoder = torch.unsqueeze(self.fc_startlayer(inputs0),dim=0).repeat_interleave(self.num_rnn_layers,dim=0)
             z_var_all = 0.1+ 0.9*torch.sigmoid(z_var_temp_all)
-            # zs = self.sample_z(z_mean_all, z_var_all, labels.size(1))
-            zs = self.sample_z(z_mean_all, z_var_all)
+            zs = self.sample_z(z_mean_all, z_var_all, labels.size(1))
             outputs_hidden = self.dcrnn_to_hidden(inputs)
             # xz = torch.cat([h_outputs, zs], dim=-1)
-            output = self.decoder(inputs, outputs_hidden, zs)
+            output = self.decoder(inputs0, outputs_hidden, zs)
             truth = labels
 
             return output, truth

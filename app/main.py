@@ -6,7 +6,7 @@ from app.seir import seir, full_seir
 from os import environ
 from app.auth import get_user
 from google.cloud.firestore_v1 import DocumentReference, DocumentSnapshot
-from app.compute import create_instance_with_docker, create_dummy_instance
+from app.compute import create_instance_with_docker, create_dummy_instance, estimate_instance_cost
 from app.compute import create_instance_with_image
 from app.compute import create_instance_and_save_image
 from app.compute import upload_yaml_to_gcs
@@ -129,6 +129,12 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
         )
     return timestamp
 
+@app.post("/estimate_cost")
+def estimate_cost(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+    print("called api")
+    sku = estimate_instance_cost("e2-medium", 1)
+    return sku
+
 @app.post("/create_dummy_compute")
 def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
@@ -172,14 +178,29 @@ def gleam_ml(params: Params):
         sensor_ids, sensor_id_to_ind, adj_mx = load_graph_data(graph_pkl_filename)
         i=1
         max_itr = 12 #12
-        # data, search_data_x, search_data_y = utils.load_dataset(**supervisor_config.get('data'))
+        data, search_data_x, search_data_y = utils.load_dataset(**supervisor_config.get('data'))
         supervisor = DCRNNSupervisor(random_seed=i, iteration=11, max_itr = max_itr, 
                 adj_mx=adj_mx, **model_tar)
+        
     supervisor.epoch_num = 101
     supervisor.load_model()
+    supervisor._data = data
     model = supervisor.dcrnn_model
-    model(np.array([0.9612716735303716, 1.0, 1.0, 1.0, 1.0, 1.0, 0.99, 1.0, 1.0, 1.7]),None,None,None,test=True,z_mean_all=supervisor.z_mean_all,z_var_temp_all=supervisor.z_var_temp_all)
-    return 
+    val_iterator = supervisor._data['{}_loader'.format('val')].get_iterator()
+
+    for _, (x, y, x0) in enumerate(val_iterator):
+        x, y, x0 = supervisor._prepare_data(x, y, x0)
+        
+        output,_ = model(x, y, x0, None, True, supervisor.z_mean_all, supervisor.z_var_temp_all)
+        
+        break
+    output = output.detach().numpy()
+    return json.dumps({"model_pred": output}, 
+                       cls=NumpyEncoder)    
+    # temp_data = np.load('app/gleam_ml/data/data/val.npz')
+    # x,y,x0 = supervisor._prepare_data(temp_data['x'],temp_data['y'],None)
+    # model(x
+    #       ,y,None,None,test=True,z_mean_all=supervisor.z_mean_all,z_var_temp_all=supervisor.z_var_temp_all)
 
     
 @app.post("/data")
