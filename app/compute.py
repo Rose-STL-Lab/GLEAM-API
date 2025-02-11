@@ -524,8 +524,7 @@ def julia_create_instance_and_save_image(
     image_family: str,
     image_project: str,
     bucket_name: str,
-    folder_name: str,
-    project_file: str, 
+    folder_name: str, 
     custom_image_name: str
 ) -> str:
     """
@@ -541,7 +540,6 @@ def julia_create_instance_and_save_image(
         image_project: Google Cloud project hosting the OS image.
         bucket_name: GCP Storage bucket containing the Julia scripts.
         folder_name: Folder in the bucket with Julia scripts.
-        project_file: Name of the Project.toml file.
         custom_image_name: Name of the custom image to create.
 
     Returns:
