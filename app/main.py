@@ -23,6 +23,7 @@ from app.gleam_ml.dcrnn_supervisor import DCRNNSupervisor
 import yaml
 from app.gleam_ml.lib.utils import load_graph_data
 from app.gleam_ml.lib import utils
+from typing import Dict
 
 
 
@@ -192,22 +193,31 @@ def gleam_ml(params: Params):
 def get_data(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
     try:
         client = storage.Client()
-        bucket = client.bucket("seir-output-bucket-2")
+        bucket = client.bucket("folder-data-bucket")
     except NotFound:
         raise HTTPException(status_code=404, detail="Bucket not found.")
     except GoogleAPICallError as e:
         raise HTTPException(status_code=500, detail=f"Error accessing GCS: {str(e)}")
 
     try:
-        blob = bucket.blob(f'out-{params.stamp}.json')
-
-        if not blob.exists():
-            raise HTTPException(status_code=404, detail=f"Data not found in the bucket.")
+        prefix = f"{params.stamp}/"
+        blobs = bucket.list_blobs(prefix=prefix) 
         
-        content = blob.download_as_text()
-        if params.delete:
-            blob.delete()
-
+        content: Dict[str, str] = {}
+        found_files = False
+        
+        for blob in blobs:
+            found_files = True
+            blob_name = blob.name
+            blob_content = blob.download_as_text()
+            content[blob_name] = blob_content
+            
+            if params.delete:
+                blob.delete()
+        
+        if not found_files:
+            raise HTTPException(status_code=404, detail=f"No data found in folder: {prefix}")
+        
         return content
     
     except GoogleAPICallError as e:

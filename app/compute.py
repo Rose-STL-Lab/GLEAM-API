@@ -124,7 +124,8 @@ def create_dummy_instance(
     sudo apt-get update
     sudo apt-get install -y docker.io
     sudo gcloud auth configure-docker
-    sudo docker docker run -ti --rm polinux/stress bash
+    sudo docker run polinux/stress bash
+    sudo apt update && sudo apt install stress -y
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
     exit""" + """
     zoneMetadata=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/zone" -H "Metadata-Flavor:Google")
@@ -550,38 +551,12 @@ def julia_create_instance_and_save_image(
 # Update and install necessary tools
 cd ..
 cd ..
-cd opt/myapp
 sudo apt-get update
 sudo apt-get install -y wget curl software-properties-common
 
 # Install Julia
-JULIA_VERSION="1.9.3"  # Update if needed
-JULIA_TAR="julia-$JULIA_VERSION-linux-x86_64.tar.gz"
-JULIA_DIR="/opt/julia"
 
-sudo mkdir -p $JULIA_DIR
-cd /tmp
-wget https://julialang-s3.julialang.org/bin/linux/x64/1.9/$JULIA_TAR
-sudo tar -xzf $JULIA_TAR -C $JULIA_DIR --strip-components 1
-rm $JULIA_TAR
-echo "export PATH=$JULIA_DIR/bin:\\$PATH" | sudo tee -a /etc/profile
-source /etc/profile
 
-# Create and set up application directory
-sudo mkdir -p /opt/myapp/{folder_name}
-sudo chmod -R 755 /opt/myapp/{folder_name}
-
-# Download Julia project files
-sudo gsutil cp -r gs://{bucket_name}/{folder_name} /opt/myapp
-sudo gsutil cp gs://{bucket_name}/{folder_name}/Project.toml /opt/myapp/Project.toml
-sudo gsutil cp gs://{bucket_name}/{folder_name}/Manifest.toml /opt/myapp/Manifest.toml
-
-# Initialize Julia environment and install dependencies
-cd /opt/myapp
-echo 'using Pkg; Pkg.activate("."); Pkg.instantiate()' | $JULIA_DIR/bin/julia
-
-# Verify installation
-echo 'using Pkg; Pkg.status()' | $JULIA_DIR/bin/julia
 """
 
     metadata_items = [
