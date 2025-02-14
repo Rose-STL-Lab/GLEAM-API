@@ -3,7 +3,7 @@ base_dir: app/gleam_ml
 log_level: INFO
 data:
   batch_size: 128 
-  dataset_dir: app/gleam_ml/data
+  dataset_dir: app/gleam_ml/data/data
   test_batch_size: 128
   val_batch_size: 128
   graph_pkl_filename: app/gleam_ml/sensor_graph/adj_mx.pkl

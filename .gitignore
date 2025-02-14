@@ -5,3 +5,5 @@ app/secrets/
 Specifications/
 compute_api/
 app/gleam_ml/data/
+app/data/
+app/runs/

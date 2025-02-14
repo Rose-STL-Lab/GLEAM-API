@@ -1,6 +1,6 @@
 print ("test")
 
-from google.cloud import compute_v1
+from google.cloud import compute_v1, billing_v1
 import json
 from google.cloud import storage
 import yaml
@@ -10,7 +10,32 @@ print ("compute downloaded")
 
 instances_client = compute_v1.InstancesClient()
 
+billing_client = billing_v1.CloudCatalogClient()
+
 print ("Instance client found")
+
+def estimate_instance_cost(machine_type, hours):
+    # List SKUs for Compute Engine
+    print("started")
+    skus = billing_client.list_skus(parent="6F81-5844-456A")
+    print("got skus")
+    # Search for the SKU matching the machine type
+    for sku in skus:
+        print(sku.description)
+        if machine_type in sku.description:
+            print(f"Found SKU: {sku.name} - {sku.description}")
+            print(sku.pricing_info)
+            for pricing_info in sku.pricing_info:
+                if pricing_info.pricing_expression.usage_unit == "h":  # Hourly pricing
+                    price_per_hour = pricing_info.pricing_expression.tiered_rates[0].unit_price.units
+                    price_nanos = pricing_info.pricing_expression.tiered_rates[0].unit_price.nanos / 1e9
+                    total_price = price_per_hour + price_nanos
+                    print(f"Price per hour: ${total_price:.4f}")
+
+                    return total_price
+
+    
+    return None
 
 def create_instance_with_docker(
     project_id: str,
