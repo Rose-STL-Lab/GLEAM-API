@@ -8,11 +8,12 @@ import time
 from google.oauth2 import service_account
 
 print ("compute downloaded")
-credentials = service_account.Credentials.from_service_account_file(
-    "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
-)
-instances_client = compute_v1.InstancesClient(credentials=credentials)
+# credentials = service_account.Credentials.from_service_account_file(
+#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+# )
+# instances_client = compute_v1.InstancesClient(credentials=credentials)
 
+instances_client = compute_v1.InstancesClient()
 billing_client = billing_v1.CloudCatalogClient()
 
 print ("Instance client found")
@@ -157,7 +158,7 @@ def create_dummy_instance(
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
     mkdir data
     sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data
-    sudo gsutil cp -r data gs://seir-output-bucket-2/tmp
+    sudo gsutil cp -r data gs://seir-output-bucket-2/outputdata
     """
 
     metadata_items = [
