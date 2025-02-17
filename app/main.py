@@ -30,11 +30,15 @@ from fastapi.responses import StreamingResponse
 from google.cloud import storage
 from google.oauth2 import service_account
 from datetime import timedelta
-# credentials = service_account.Credentials.from_service_account_file(
-#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
-# )
+service_account_path = "/etc/secrets/storage_credential"
+
+# Load credentials from the secret file
+credentials = service_account.Credentials.from_service_account_file(service_account_path)
+
+# Initialize the storage client with credentials
+storage_client = storage.Client(credentials=credentials)
 # storage_client = storage.Client(credentials=credentials)
-storage_client = storage.Client()
+# storage_client = storage.Client()
 bucket_name = "seir-output-bucket-2"
 
 class Params(BaseModel):
