@@ -351,7 +351,7 @@ def julia_create_image(params: JuliaImageParams,
     return params.image_name + "-"+ timestamp
 
 
-@app.get("/download-folder")
+@app.post("/download-folder")
 async def download_folder(params: StampParams):
     try:
         bucket = storage_client.bucket(bucket_name)

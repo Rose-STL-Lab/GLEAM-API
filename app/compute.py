@@ -159,7 +159,7 @@ def create_dummy_instance(
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
     mkdir data_{instance_name}
     sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data{timestamp}
-    sudo gsutil cp -r data{timestamp}/data gs://seir-output-bucket-2/outputdata
+    sudo gsutil cp -r data{timestamp}/data gs://seir-output-bucket-2/outputdata/
     """
 
     metadata_items = [
@@ -169,7 +169,7 @@ def create_dummy_instance(
     # Define the disk for the VM using Debian 12 Bookworm First One I Found that worked, Could be changed for different workloads
     initialize_params = compute_v1.AttachedDiskInitializeParams(
         source_image="projects/debian-cloud/global/images/debian-12-bookworm-v20241112",
-        disk_size_gb=30,  # Specify 10GB disk size
+        disk_size_gb=30, 
         disk_type=f"zones/{zone}/diskTypes/pd-balanced" 
     )
     disk = compute_v1.AttachedDisk(
