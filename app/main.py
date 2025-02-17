@@ -161,7 +161,7 @@ def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, Docum
         io= params.io,
         vm= params.vm,
         vm_bytes= params.vm_bytes,
-        timeout= params.timeout
+        timeout= params.timeout,
         timestamp = timestamp
         )
     return timestamp
