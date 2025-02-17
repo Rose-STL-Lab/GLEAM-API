@@ -5,10 +5,13 @@ import json
 from google.cloud import storage
 import yaml
 import time
+from google.oauth2 import service_account
 
 print ("compute downloaded")
-
-instances_client = compute_v1.InstancesClient()
+credentials = service_account.Credentials.from_service_account_file(
+    "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+)
+instances_client = compute_v1.InstancesClient(credentials=credentials)
 
 billing_client = billing_v1.CloudCatalogClient()
 
@@ -152,12 +155,9 @@ def create_dummy_instance(
     sudo docker run polinux/stress bash
     sudo apt update && sudo apt install stress -y
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
-    exit""" + """
-    zoneMetadata=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/zone" -H "Metadata-Flavor:Google")
-    IFS=$'/'
-    zoneMetadataSplit=($zoneMetadata)
-    ZONE="${zoneMetadataSplit[3]}"
-    docker run --entrypoint "gcloud" google/cloud-sdk:alpine compute instances delete ${HOSTNAME}  --delete-disks=all --zone=${ZONE}
+    mkdir data
+    sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data
+    sudo gsutil cp -r data gs://seir-output-bucket-2/tmp
     """
 
     metadata_items = [
@@ -167,7 +167,7 @@ def create_dummy_instance(
     # Define the disk for the VM using Debian 12 Bookworm First One I Found that worked, Could be changed for different workloads
     initialize_params = compute_v1.AttachedDiskInitializeParams(
         source_image="projects/debian-cloud/global/images/debian-12-bookworm-v20241112",
-        disk_size_gb=10,  # Specify 10GB disk size
+        disk_size_gb=30,  # Specify 10GB disk size
         disk_type=f"zones/{zone}/diskTypes/pd-balanced" 
     )
     disk = compute_v1.AttachedDisk(
@@ -206,6 +206,15 @@ def create_dummy_instance(
     )
     operation = instances_client.insert(request=instance_insert_request)
     operation.result()  # Wait for the operation to complete
+
+    # delete_request = compute_v1.DeleteInstanceRequest(
+    #     project=project_id,
+    #     instance=instance_name,
+    #     zone=zone
+    # )
+    # instances_client.delete(request=delete_request)
+
+    
 
     return instances_client.get(project=project_id, zone=zone, instance=instance_name)
 
