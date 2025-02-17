@@ -159,7 +159,7 @@ def create_dummy_instance(
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
     mkdir data_{instance_name}
     sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data{timestamp}
-    sudo gsutil cp -r data{timestamp}/data gs://seir-output-bucket-2/outputdata/
+    sudo gsutil cp -r data{timestamp} gs://seir-output-bucket-2/outputdata/
     """
 
     metadata_items = [
