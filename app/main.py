@@ -28,7 +28,12 @@ import io
 import zipfile
 from fastapi.responses import StreamingResponse
 from google.cloud import storage
-
+from google.oauth2 import service_account
+from datetime import timedelta
+# credentials = service_account.Credentials.from_service_account_file(
+#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+# )
+# storage_client = storage.Client(credentials=credentials)
 storage_client = storage.Client()
 bucket_name = "seir-output-bucket-2"
 
@@ -219,8 +224,7 @@ def gleam_ml(params: Params):
 @app.post("/data")
 def get_data(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
     try:
-        client = storage.Client()
-        bucket = client.bucket("seir-output-bucket-2")
+        bucket = storage_client.bucket("seir-output-bucket-2")
     except NotFound:
         raise HTTPException(status_code=404, detail="Bucket not found.")
     except GoogleAPICallError as e:
@@ -351,25 +355,52 @@ def julia_create_image(params: JuliaImageParams,
     return params.image_name + "-"+ timestamp
 
 
-@app.get("/download-folder/")
-async def download_folder(folder_name: str):
-    storage_client = storage.Client()
+def zip_and_upload(folder_name: str, zip_blob_name: str):
     bucket = storage_client.bucket(bucket_name)
     
     blobs = list(bucket.list_blobs(prefix=folder_name))
     if not blobs:
-        return {"error": "Folder not found or empty"}
+        raise HTTPException(status_code=404, detail="No files found in the folder.")
 
     zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+    
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
         for blob in blobs:
-            blob_data = blob.download_as_bytes()
-            zip_file.writestr(blob.name[len(folder_name):], blob_data)  # Remove folder prefix
+            file_data = blob.download_as_bytes()
+            file_name = blob.name[len(folder_name):]
+            zipf.writestr(file_name, file_data)
 
     zip_buffer.seek(0)
 
-    return Response(
-        content=zip_buffer.getvalue(),
-        media_type="application/zip",
-        headers={"Content-Disposition": f"attachment; filename={folder_name}.zip"}
+    zip_blob = bucket.blob(zip_blob_name)
+
+    zip_blob.chunk_size = 5 * 1024 * 1024 
+    zip_blob.upload_from_file(zip_buffer, content_type="application/zip")
+
+    return f"gs://{bucket_name}/{zip_blob_name}"
+
+
+def generate_signed_url(blob_name: str, expiration_minutes=15):
+    """Generates a signed URL for a GCS object."""
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    url = blob.generate_signed_url(
+        expiration=timedelta(minutes=expiration_minutes), 
+        version="v4",
     )
+    return url
+
+
+@app.get("/download-folder/")
+async def download_folder(folder_name: str):
+    """Creates a ZIP file of a GCS folder and returns a signed URL for download."""
+    try:
+        zip_blob_name = f"{folder_name}.zip" 
+        zip_gcs_path = zip_and_upload(folder_name, zip_blob_name)
+        
+        signed_url = generate_signed_url(zip_blob_name)
+        return {"download_url": signed_url, "gcs_path": zip_gcs_path}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

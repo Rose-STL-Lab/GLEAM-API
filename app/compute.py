@@ -12,9 +12,15 @@ print ("compute downloaded")
 #     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
 # )
 # instances_client = compute_v1.InstancesClient(credentials=credentials)
+# billing_client = billing_v1.CloudCatalogClient(credentials=credentials)
+# storage_client = storage.Client(credentials=credentials)
+# images_client = compute_v1.ImagesClient(credentials=credentials)
+
 
 instances_client = compute_v1.InstancesClient()
 billing_client = billing_v1.CloudCatalogClient()
+storage_client = storage.Client()
+images_client = compute_v1.ImagesClient()
 
 print ("Instance client found")
 
@@ -397,7 +403,6 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
         ]
     )
 
-    instances_client = compute_v1.InstancesClient()
     instance_insert_request = compute_v1.InsertInstanceRequest(
         project=project_id,
         zone=zone,
@@ -407,7 +412,6 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
     operation.result()  # Wait for the operation to complete
     time.sleep(180)
 
-    instances_client = compute_v1.InstancesClient()
     stop_request = compute_v1.StopInstanceRequest(
         project=project_id,
         zone=zone,
@@ -417,7 +421,6 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
     stop_operation.result()  # Wait for the instance to stop
 
     # Create the custom image
-    images_client = compute_v1.ImagesClient()
     image_request = compute_v1.InsertImageRequest(
         project=project_id,
         image_resource=compute_v1.Image(
@@ -453,7 +456,6 @@ def upload_yaml_to_gcs(yaml_data: dict, bucket_name: str, destination_blob_name:
         str: A message indicating success.
     """
 
-    storage_client = storage.Client()
     yaml_string = yaml.dump(yaml_data, default_flow_style=False)
 
     bucket = storage_client.bucket(bucket_name)
@@ -630,8 +632,6 @@ sudo apt-get install -y wget curl software-properties-common
         ]
     )
 
-    # Create the instance
-    instances_client = compute_v1.InstancesClient()
     instance_insert_request = compute_v1.InsertInstanceRequest(
         project=project_id,
         zone=zone,

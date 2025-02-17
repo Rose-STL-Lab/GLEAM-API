@@ -2,11 +2,19 @@ import firebase_admin
 from firebase_admin import firestore, credentials
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud.firestore_v1 import DocumentReference
+from google.oauth2 import service_account
 
 # Application Default credentials are automatically created.
 # cred = credentials.Certificate("app/secrets/epistorm-gleam-api-90859df48d72.json")
-app = firebase_admin.initialize_app()
+
+
+# credentials = service_account.Credentials.from_service_account_file(
+#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+# )
+# db = firestore.Client(credentials=credentials)
 db = firestore.client()
+
+app = firebase_admin.initialize_app()
 users_ref = db.collection('users')
 
 
