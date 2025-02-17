@@ -24,8 +24,13 @@ import yaml
 from app.gleam_ml.lib.utils import load_graph_data
 from app.gleam_ml.lib import utils
 from typing import Dict
+import io
+import zipfile
+from fastapi.responses import StreamingResponse
+from google.cloud import storage
 
-
+storage_client = storage.Client()
+bucket_name = "seir-output-bucket-2"
 
 class Params(BaseModel):
     days: int
@@ -71,7 +76,7 @@ class ComputeParams(BaseModel):
 
 
 class StampParams(BaseModel):
-    stamp: str
+    folder: str
     delete: bool
 
 class ConfigParams(BaseModel):
@@ -157,6 +162,7 @@ def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, Docum
         vm= params.vm,
         vm_bytes= params.vm_bytes,
         timeout= params.timeout
+        timestamp = timestamp
         )
     return timestamp
 
@@ -214,7 +220,7 @@ def gleam_ml(params: Params):
 def get_data(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
     try:
         client = storage.Client()
-        bucket = client.bucket("folder-data-bucket")
+        bucket = client.bucket("seir-output-bucket-2")
     except NotFound:
         raise HTTPException(status_code=404, detail="Bucket not found.")
     except GoogleAPICallError as e:
@@ -345,4 +351,31 @@ def julia_create_image(params: JuliaImageParams,
     return params.image_name + "-"+ timestamp
 
 
-#just a test
+@app.get("/download-folder")
+async def download_folder(params: StampParams):
+    try:
+        bucket = storage_client.bucket(bucket_name)
+        prefix = params.folder 
+        blobs = list(bucket.list_blobs(prefix=prefix))
+
+        if not blobs:
+            raise HTTPException(status_code=404, detail=f"No files found in folder: {prefix}")
+
+        zip_stream = io.BytesIO()
+
+        with zipfile.ZipFile(zip_stream, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for blob in blobs:
+                file_data = blob.download_as_bytes()
+                zip_file.writestr(blob.name[len(prefix):], file_data) 
+
+        zip_stream.seek(0)
+
+        return StreamingResponse(zip_stream, media_type="application/zip",
+                                 headers={"Content-Disposition": f"attachment; filename={prefix}.zip"})
+    
+    except NotFound:
+        raise HTTPException(status_code=404, detail="Bucket not found.")
+    except GoogleAPICallError as e:
+        raise HTTPException(status_code=500, detail=f"Error accessing GCS: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

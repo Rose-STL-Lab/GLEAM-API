@@ -146,7 +146,8 @@ def create_dummy_instance(
     io: int,
     vm: int,
     vm_bytes: str,
-    timeout: str
+    timeout: str,
+    timestamp: str
 ) -> compute_v1.Instance:
     startup_script = f"""#!/bin/bash
     IMAGE_NAME=$(curl http://metadata.google.internal/computeMetadata/v1/instance/attributes/image_name -H "Metadata-Flavor: Google")
@@ -156,9 +157,9 @@ def create_dummy_instance(
     sudo docker run polinux/stress bash
     sudo apt update && sudo apt install stress -y
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
-    mkdir data
-    sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data
-    sudo gsutil cp -r data gs://seir-output-bucket-2/outputdata
+    mkdir data_{instance_name}
+    sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data{timestamp}
+    sudo gsutil cp -r data{timestamp}/data gs://seir-output-bucket-2/outputdata
     """
 
     metadata_items = [
