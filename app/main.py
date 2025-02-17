@@ -31,28 +31,27 @@ from google.cloud import storage
 from google.oauth2 import service_account
 from datetime import timedelta
 from google.cloud import secretmanager
+import tempfile
 
+def download_service_account_key(bucket_name: str, blob_name: str) -> str:
+    """Downloads the service account key from Cloud Storage and returns the file path."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
 
-def get_service_account_info(project_id: str, secret_id: str, version_id: str = "latest") -> dict:
-    client = secretmanager.SecretManagerServiceClient()
-    secret_name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
-    response = client.access_secret_version(request={"name": secret_name})
-    secret_payload = response.payload.data.decode("UTF-8")
-    return json.loads(secret_payload)
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+    blob.download_to_filename(temp_file.name)
 
-PROJECT_ID = "883627921778"
-SECRET_ID = "storage_credential"
+    return temp_file.name 
 
-service_account_info = get_service_account_info(PROJECT_ID, SECRET_ID)
-credentials = service_account.Credentials.from_service_account_info(service_account_info)
-storage_client = storage.Client(credentials=credentials)
-
-
-service_account_path = "/etc/secrets/storage_credential"
+BUCKET_NAME = "liamsjuliabucket"
+SERVICE_ACCOUNT_FILENAME = "epistorm-gleam-api-612347bc95a6.json"
+service_account_path = download_service_account_key(BUCKET_NAME, SERVICE_ACCOUNT_FILENAME)
 
 credentials = service_account.Credentials.from_service_account_file(service_account_path)
-
 storage_client = storage.Client(credentials=credentials)
+
+
 # storage_client = storage.Client(credentials=credentials)
 # storage_client = storage.Client()
 bucket_name = "seir-output-bucket-2"
