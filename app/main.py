@@ -1,6 +1,6 @@
 import numpy as np
 import json
-from fastapi import Depends, FastAPI, BackgroundTasks
+from fastapi import Depends, FastAPI, BackgroundTasks, Response
 from pydantic import BaseModel
 from app.seir import seir, full_seir    
 from os import environ
@@ -351,31 +351,25 @@ def julia_create_image(params: JuliaImageParams,
     return params.image_name + "-"+ timestamp
 
 
-@app.post("/download-folder")
-async def download_folder(params: StampParams):
-    try:
-        bucket = storage_client.bucket(bucket_name)
-        prefix = params.folder 
-        blobs = list(bucket.list_blobs(prefix=prefix))
-
-        if not blobs:
-            raise HTTPException(status_code=404, detail=f"No files found in folder: {prefix}")
-
-        zip_stream = io.BytesIO()
-
-        with zipfile.ZipFile(zip_stream, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            for blob in blobs:
-                file_data = blob.download_as_bytes()
-                zip_file.writestr(blob.name[len(prefix):], file_data) 
-
-        zip_stream.seek(0)
-
-        return StreamingResponse(zip_stream, media_type="application/zip",
-                                 headers={"Content-Disposition": f"attachment; filename={prefix}.zip"})
+@app.get("/download-folder/")
+async def download_folder(folder_name: str):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
     
-    except NotFound:
-        raise HTTPException(status_code=404, detail="Bucket not found.")
-    except GoogleAPICallError as e:
-        raise HTTPException(status_code=500, detail=f"Error accessing GCS: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    blobs = list(bucket.list_blobs(prefix=folder_name))
+    if not blobs:
+        return {"error": "Folder not found or empty"}
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for blob in blobs:
+            blob_data = blob.download_as_bytes()
+            zip_file.writestr(blob.name[len(folder_name):], blob_data)  # Remove folder prefix
+
+    zip_buffer.seek(0)
+
+    return Response(
+        content=zip_buffer.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={folder_name}.zip"}
+    )
