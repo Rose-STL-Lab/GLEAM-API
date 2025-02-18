@@ -8,19 +8,19 @@ import time
 from google.oauth2 import service_account
 
 print ("compute downloaded")
-# credentials = service_account.Credentials.from_service_account_file(
-#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
-# )
-# instances_client = compute_v1.InstancesClient(credentials=credentials)
-# billing_client = billing_v1.CloudCatalogClient(credentials=credentials)
-# storage_client = storage.Client(credentials=credentials)
-# images_client = compute_v1.ImagesClient(credentials=credentials)
+credentials = service_account.Credentials.from_service_account_file(
+    "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+)
+instances_client = compute_v1.InstancesClient(credentials=credentials)
+billing_client = billing_v1.CloudCatalogClient(credentials=credentials)
+storage_client = storage.Client(credentials=credentials)
+images_client = compute_v1.ImagesClient(credentials=credentials)
 
 
-instances_client = compute_v1.InstancesClient()
-billing_client = billing_v1.CloudCatalogClient()
-storage_client = storage.Client()
-images_client = compute_v1.ImagesClient()
+# instances_client = compute_v1.InstancesClient()
+# billing_client = billing_v1.CloudCatalogClient()
+# storage_client = storage.Client()
+# images_client = compute_v1.ImagesClient()
 
 print ("Instance client found")
 
@@ -163,7 +163,7 @@ def create_dummy_instance(
     sudo docker run polinux/stress bash
     sudo apt update && sudo apt install stress -y
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
-    mkdir data_{instance_name}
+    mkdir data{timestamp}
     sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data{timestamp}
     sudo gsutil cp -r data{timestamp} gs://seir-output-bucket-2/outputdata/
     """
@@ -215,12 +215,12 @@ def create_dummy_instance(
     operation = instances_client.insert(request=instance_insert_request)
     operation.result()  # Wait for the operation to complete
 
-    delete_request = compute_v1.DeleteInstanceRequest(
-        project=project_id,
-        instance=instance_name,
-        zone=zone
-    )
-    instances_client.delete(request=delete_request)
+    # delete_request = compute_v1.DeleteInstanceRequest(
+    #     project=project_id,
+    #     instance=instance_name,
+    #     zone=zone
+    # )
+    # instances_client.delete(request=delete_request)
 
     
 

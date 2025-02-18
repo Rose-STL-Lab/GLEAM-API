@@ -49,11 +49,11 @@ SERVICE_ACCOUNT_FILENAME = "epistorm-gleam-api-612347bc95a6.json"
 service_account_path = download_service_account_key(BUCKET_NAME, SERVICE_ACCOUNT_FILENAME)
 
 credentials = service_account.Credentials.from_service_account_file(service_account_path)
+# credentials = service_account.Credentials.from_service_account_file(
+#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+# )
+
 storage_client = storage.Client(credentials=credentials)
-
-
-# storage_client = storage.Client(credentials=credentials)
-# storage_client = storage.Client()
 bucket_name = "seir-output-bucket-2"
 
 class Params(BaseModel):
