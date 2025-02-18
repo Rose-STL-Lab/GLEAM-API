@@ -215,12 +215,12 @@ def create_dummy_instance(
     operation = instances_client.insert(request=instance_insert_request)
     operation.result()  # Wait for the operation to complete
 
-    # delete_request = compute_v1.DeleteInstanceRequest(
-    #     project=project_id,
-    #     instance=instance_name,
-    #     zone=zone
-    # )
-    # instances_client.delete(request=delete_request)
+    delete_request = compute_v1.DeleteInstanceRequest(
+        project=project_id,
+        instance=instance_name,
+        zone=zone
+    )
+    instances_client.delete(request=delete_request)
 
     
 
