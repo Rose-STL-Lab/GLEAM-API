@@ -9,12 +9,12 @@ from google.oauth2 import service_account
 
 app = firebase_admin.initialize_app()
 
-credentials = service_account.Credentials.from_service_account_file(
-    "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
-)
-db = firestore.Client(credentials=credentials)
+# credentials = service_account.Credentials.from_service_account_file(
+#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+# )
+# db = firestore.Client(credentials=credentials)
 
-# db = firestore.client()
+db = firestore.client()
 
 users_ref = db.collection('users')
 
