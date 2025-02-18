@@ -8,19 +8,19 @@ import time
 from google.oauth2 import service_account
 
 print ("compute downloaded")
-credentials = service_account.Credentials.from_service_account_file(
-    "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
-)
-instances_client = compute_v1.InstancesClient(credentials=credentials)
-billing_client = billing_v1.CloudCatalogClient(credentials=credentials)
-storage_client = storage.Client(credentials=credentials)
-images_client = compute_v1.ImagesClient(credentials=credentials)
+# credentials = service_account.Credentials.from_service_account_file(
+#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+# )
+# instances_client = compute_v1.InstancesClient(credentials=credentials)
+# billing_client = billing_v1.CloudCatalogClient(credentials=credentials)
+# storage_client = storage.Client(credentials=credentials)
+# images_client = compute_v1.ImagesClient(credentials=credentials)
 
 
-# instances_client = compute_v1.InstancesClient()
-# billing_client = billing_v1.CloudCatalogClient()
-# storage_client = storage.Client()
-# images_client = compute_v1.ImagesClient()
+instances_client = compute_v1.InstancesClient()
+billing_client = billing_v1.CloudCatalogClient()
+storage_client = storage.Client()
+images_client = compute_v1.ImagesClient()
 
 print ("Instance client found")
 
