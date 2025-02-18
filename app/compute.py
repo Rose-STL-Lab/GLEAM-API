@@ -29,7 +29,7 @@ def estimate_instance_cost(machine_type, hours):
                 if pricing_info.pricing_expression.usage_unit == "h":  # Hourly pricing
                     price_per_hour = pricing_info.pricing_expression.tiered_rates[0].unit_price.units
                     price_nanos = pricing_info.pricing_expression.tiered_rates[0].unit_price.nanos / 1e9
-                    total_price = price_per_hour + price_nanos
+                    total_price = hours * price_per_hour + price_nanos
                     print(f"Price per hour: ${total_price:.4f}")
 
                     return total_price
