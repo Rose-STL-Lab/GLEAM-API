@@ -5,12 +5,22 @@ import json
 from google.cloud import storage
 import yaml
 import time
+from google.oauth2 import service_account
 
 print ("compute downloaded")
+# credentials = service_account.Credentials.from_service_account_file(
+#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+# )
+# instances_client = compute_v1.InstancesClient(credentials=credentials)
+# billing_client = billing_v1.CloudCatalogClient(credentials=credentials)
+# storage_client = storage.Client(credentials=credentials)
+# images_client = compute_v1.ImagesClient(credentials=credentials)
+
 
 instances_client = compute_v1.InstancesClient()
-
 billing_client = billing_v1.CloudCatalogClient()
+storage_client = storage.Client()
+images_client = compute_v1.ImagesClient()
 
 print ("Instance client found")
 
@@ -142,21 +152,20 @@ def create_dummy_instance(
     io: int,
     vm: int,
     vm_bytes: str,
-    timeout: str
+    timeout: str,
+    timestamp: str
 ) -> compute_v1.Instance:
     startup_script = f"""#!/bin/bash
     IMAGE_NAME=$(curl http://metadata.google.internal/computeMetadata/v1/instance/attributes/image_name -H "Metadata-Flavor: Google")
     sudo apt-get update
     sudo apt-get install -y docker.io
     sudo gcloud auth configure-docker
-    sudo docker docker run -ti --rm polinux/stress bash
+    sudo docker run polinux/stress bash
+    sudo apt update && sudo apt install stress -y
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
-    exit""" + """
-    zoneMetadata=$(curl "http://metadata.google.internal/computeMetadata/v1/instance/zone" -H "Metadata-Flavor:Google")
-    IFS=$'/'
-    zoneMetadataSplit=($zoneMetadata)
-    ZONE="${zoneMetadataSplit[3]}"
-    docker run --entrypoint "gcloud" google/cloud-sdk:alpine compute instances delete ${HOSTNAME}  --delete-disks=all --zone=${ZONE}
+    mkdir data{timestamp}
+    sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data{timestamp}
+    sudo gsutil cp -r data{timestamp} gs://seir-output-bucket-2/outputdata/
     """
 
     metadata_items = [
@@ -166,7 +175,7 @@ def create_dummy_instance(
     # Define the disk for the VM using Debian 12 Bookworm First One I Found that worked, Could be changed for different workloads
     initialize_params = compute_v1.AttachedDiskInitializeParams(
         source_image="projects/debian-cloud/global/images/debian-12-bookworm-v20241112",
-        disk_size_gb=10,  # Specify 10GB disk size
+        disk_size_gb=30, 
         disk_type=f"zones/{zone}/diskTypes/pd-balanced" 
     )
     disk = compute_v1.AttachedDisk(
@@ -205,6 +214,15 @@ def create_dummy_instance(
     )
     operation = instances_client.insert(request=instance_insert_request)
     operation.result()  # Wait for the operation to complete
+
+    delete_request = compute_v1.DeleteInstanceRequest(
+        project=project_id,
+        instance=instance_name,
+        zone=zone
+    )
+    instances_client.delete(request=delete_request)
+
+    
 
     return instances_client.get(project=project_id, zone=zone, instance=instance_name)
 
@@ -385,7 +403,6 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
         ]
     )
 
-    instances_client = compute_v1.InstancesClient()
     instance_insert_request = compute_v1.InsertInstanceRequest(
         project=project_id,
         zone=zone,
@@ -395,7 +412,6 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
     operation.result()  # Wait for the operation to complete
     time.sleep(180)
 
-    instances_client = compute_v1.InstancesClient()
     stop_request = compute_v1.StopInstanceRequest(
         project=project_id,
         zone=zone,
@@ -405,7 +421,6 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
     stop_operation.result()  # Wait for the instance to stop
 
     # Create the custom image
-    images_client = compute_v1.ImagesClient()
     image_request = compute_v1.InsertImageRequest(
         project=project_id,
         image_resource=compute_v1.Image(
@@ -441,7 +456,6 @@ def upload_yaml_to_gcs(yaml_data: dict, bucket_name: str, destination_blob_name:
         str: A message indicating success.
     """
 
-    storage_client = storage.Client()
     yaml_string = yaml.dump(yaml_data, default_flow_style=False)
 
     bucket = storage_client.bucket(bucket_name)
@@ -575,38 +589,12 @@ def julia_create_instance_and_save_image(
 # Update and install necessary tools
 cd ..
 cd ..
-cd opt/myapp
 sudo apt-get update
 sudo apt-get install -y wget curl software-properties-common
 
 # Install Julia
-JULIA_VERSION="1.9.3"  # Update if needed
-JULIA_TAR="julia-$JULIA_VERSION-linux-x86_64.tar.gz"
-JULIA_DIR="/opt/julia"
 
-sudo mkdir -p $JULIA_DIR
-cd /tmp
-wget https://julialang-s3.julialang.org/bin/linux/x64/1.9/$JULIA_TAR
-sudo tar -xzf $JULIA_TAR -C $JULIA_DIR --strip-components 1
-rm $JULIA_TAR
-echo "export PATH=$JULIA_DIR/bin:\\$PATH" | sudo tee -a /etc/profile
-source /etc/profile
 
-# Create and set up application directory
-sudo mkdir -p /opt/myapp/{folder_name}
-sudo chmod -R 755 /opt/myapp/{folder_name}
-
-# Download Julia project files
-sudo gsutil cp -r gs://{bucket_name}/{folder_name} /opt/myapp
-sudo gsutil cp gs://{bucket_name}/{folder_name}/Project.toml /opt/myapp/Project.toml
-sudo gsutil cp gs://{bucket_name}/{folder_name}/Manifest.toml /opt/myapp/Manifest.toml
-
-# Initialize Julia environment and install dependencies
-cd /opt/myapp
-echo 'using Pkg; Pkg.activate("."); Pkg.instantiate()' | $JULIA_DIR/bin/julia
-
-# Verify installation
-echo 'using Pkg; Pkg.status()' | $JULIA_DIR/bin/julia
 """
 
     metadata_items = [
@@ -644,8 +632,6 @@ echo 'using Pkg; Pkg.status()' | $JULIA_DIR/bin/julia
         ]
     )
 
-    # Create the instance
-    instances_client = compute_v1.InstancesClient()
     instance_insert_request = compute_v1.InsertInstanceRequest(
         project=project_id,
         zone=zone,

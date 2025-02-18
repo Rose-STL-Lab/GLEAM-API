@@ -1,6 +1,6 @@
 import numpy as np
 import json
-from fastapi import Depends, FastAPI, BackgroundTasks
+from fastapi import Depends, FastAPI, BackgroundTasks, Response
 from pydantic import BaseModel
 from app.seir import seir, full_seir    
 from os import environ
@@ -23,8 +23,38 @@ from app.gleam_ml.dcrnn_supervisor import DCRNNSupervisor
 import yaml
 from app.gleam_ml.lib.utils import load_graph_data
 from app.gleam_ml.lib import utils
+from typing import Dict
+import io
+import zipfile
+from fastapi.responses import StreamingResponse
+from google.cloud import storage
+from google.oauth2 import service_account
+from datetime import timedelta
+from google.cloud import secretmanager
+import tempfile
 
+def download_service_account_key(bucket_name: str, blob_name: str) -> str:
+    """Downloads the service account key from Cloud Storage and returns the file path."""
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
 
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
+    blob.download_to_filename(temp_file.name)
+
+    return temp_file.name 
+
+BUCKET_NAME = "liamsjuliabucket"
+SERVICE_ACCOUNT_FILENAME = "epistorm-gleam-api-612347bc95a6.json"
+service_account_path = download_service_account_key(BUCKET_NAME, SERVICE_ACCOUNT_FILENAME)
+
+credentials = service_account.Credentials.from_service_account_file(service_account_path)
+# credentials = service_account.Credentials.from_service_account_file(
+#     "C:/Users/00011/Downloads/epistorm-gleam-api-612347bc95a6.json"
+# )
+
+storage_client = storage.Client(credentials=credentials)
+bucket_name = "seir-output-bucket-2"
 
 class Params(BaseModel):
     days: int
@@ -70,7 +100,7 @@ class ComputeParams(BaseModel):
 
 
 class StampParams(BaseModel):
-    stamp: str
+    folder: str
     delete: bool
 
 class ConfigParams(BaseModel):
@@ -155,7 +185,8 @@ def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, Docum
         io= params.io,
         vm= params.vm,
         vm_bytes= params.vm_bytes,
-        timeout= params.timeout
+        timeout= params.timeout,
+        timestamp = timestamp
         )
     return timestamp
 
@@ -212,23 +243,31 @@ def gleam_ml(params: Params):
 @app.post("/data")
 def get_data(params: StampParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
     try:
-        client = storage.Client()
-        bucket = client.bucket("seir-output-bucket-2")
+        bucket = storage_client.bucket("seir-output-bucket-2")
     except NotFound:
         raise HTTPException(status_code=404, detail="Bucket not found.")
     except GoogleAPICallError as e:
         raise HTTPException(status_code=500, detail=f"Error accessing GCS: {str(e)}")
 
     try:
-        blob = bucket.blob(f'out-{params.stamp}.json')
-
-        if not blob.exists():
-            raise HTTPException(status_code=404, detail=f"Data not found in the bucket.")
+        prefix = f"{params.stamp}/"
+        blobs = bucket.list_blobs(prefix=prefix) 
         
-        content = blob.download_as_text()
-        if params.delete:
-            blob.delete()
-
+        content: Dict[str, str] = {}
+        found_files = False
+        
+        for blob in blobs:
+            found_files = True
+            blob_name = blob.name
+            blob_content = blob.download_as_text()
+            content[blob_name] = blob_content
+            
+            if params.delete:
+                blob.delete()
+        
+        if not found_files:
+            raise HTTPException(status_code=404, detail=f"No data found in folder: {prefix}")
+        
         return content
     
     except GoogleAPICallError as e:
@@ -335,4 +374,52 @@ def julia_create_image(params: JuliaImageParams,
     return params.image_name + "-"+ timestamp
 
 
-#just a test
+def zip_and_upload(folder_name: str, zip_blob_name: str):
+    bucket = storage_client.bucket(bucket_name)
+    
+    blobs = list(bucket.list_blobs(prefix=folder_name))
+    if not blobs:
+        raise HTTPException(status_code=404, detail="No files found in the folder.")
+
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for blob in blobs:
+            file_data = blob.download_as_bytes()
+            file_name = blob.name[len(folder_name):]
+            zipf.writestr(file_name, file_data)
+
+    zip_buffer.seek(0)
+
+    zip_blob = bucket.blob(zip_blob_name)
+
+    zip_blob.chunk_size = 5 * 1024 * 1024 
+    zip_blob.upload_from_file(zip_buffer, content_type="application/zip")
+
+    return f"gs://{bucket_name}/{zip_blob_name}"
+
+
+def generate_signed_url(blob_name: str, expiration_minutes=15):
+    """Generates a signed URL for a GCS object."""
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+
+    url = blob.generate_signed_url(
+        expiration=timedelta(minutes=expiration_minutes), 
+        version="v4",
+    )
+    return url
+
+
+@app.get("/download-folder/")
+async def download_folder(folder_name: str):
+    """Creates a ZIP file of a GCS folder and returns a signed URL for download."""
+    try:
+        zip_blob_name = f"{folder_name}.zip" 
+        zip_gcs_path = zip_and_upload(folder_name, zip_blob_name)
+        
+        signed_url = generate_signed_url(zip_blob_name)
+        return {"download_url": signed_url, "gcs_path": zip_gcs_path}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
