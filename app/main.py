@@ -192,6 +192,13 @@ def estimate_cost(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get
 def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
     timestamp = str(int(time.time()))
+    user_info = user[0].to_dict()
+    num_runs = user_info['Num_Runs_This_Month']
+    cost_this_month = user_info['Cost_This_Month']
+    cost_limit = user_info['Limit_Cost_Per_Month']
+    estimate = estimate_instance_cost(2,1,4,1)
+    if estimate + cost_this_month > cost_limit:
+        return f'User has exceeded their monthly cost limit of ${cost_limit}'
     
     output = create_dummy_instance(
         project_id="epistorm-gleam-api",
@@ -205,6 +212,7 @@ def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, Docum
         timeout= params.timeout,
         timestamp = timestamp
         )
+    user[1].update({'Num_Runs_This_Month': num_runs + 1,'Cost_This_Month': cost_this_month + estimate})
     return timestamp
 
 @app.post("/stnp_model")
