@@ -25,28 +25,37 @@ images_client = compute_v1.ImagesClient()
 
 print ("Instance client found")
 
-def estimate_instance_cost(machine_type, hours):
+def estimate_instance_cost(num_gpu, num_cpu, num_ram, hours):
+    SKUS = {'GPU' : '88B8-C3ED-03F0', 'CPU' : 'CF4E-A0C7-E3BF', 'RAM' : 'F449-33EC-A5EF'}
+    SKU_PRICE = {'GPU': 0.35, 'CPU': 0.02181159, 'RAM': 0.00292353}
+    estimate = 0
+    
     # List SKUs for Compute Engine
-    print("started")
     skus = billing_client.list_skus(parent="services/6F81-5844-456A")
-    print("got skus")
     # Search for the SKU matching the machine type
     for sku in skus:
-        print(sku.description)
-        if machine_type in sku.description:
-            print(f"Found SKU: {sku.name} - {sku.description}")
+        if SKUS['RAM'] == sku.sku_id:
+            print(f"Found RAM SKU: {sku.name} - {sku.description}")
             print(sku.pricing_info)
-            for pricing_info in sku.pricing_info:
-                if pricing_info.pricing_expression.usage_unit == "h":  # Hourly pricing
-                    price_per_hour = pricing_info.pricing_expression.tiered_rates[0].unit_price.units
-                    price_nanos = pricing_info.pricing_expression.tiered_rates[0].unit_price.nanos / 1e9
-                    total_price = hours * price_per_hour + price_nanos
-                    print(f"Price per hour: ${total_price:.4f}")
+            SKU_PRICE['RAM'] = sku.pricing_info.pricing_expression.tiered_rates[0].unit_price
+        if SKUS['GPU'] == sku.sku_id:
+            print(f"Found GPU SKU: {sku.name} - {sku.description}")
+            print(sku.pricing_info)
+            SKU_PRICE['GPU'] = sku.pricing_info.pricing_expression.tiered_rates[0].unit_price
+        if SKUS['CPU'] == sku.sku_id:
+            print(f"Found CPU SKU: {sku.name} - {sku.description}")
+            print(sku.pricing_info)    
+            SKU_PRICE['CPU'] = sku.pricing_info.pricing_expression.tiered_rates[0].unit_price
+            # for pricing_info in sku.pricing_info:
+            #     if pricing_info.pricing_expression.usage_unit == "h":  # Hourly pricing
+            #         price_per_hour = pricing_info.pricing_expression.tiered_rates[0].unit_price.units
+            #         price_nanos = pricing_info.pricing_expression.tiered_rates[0].unit_price.nanos / 1e9
+            #         total_price = hours * price_per_hour + price_nanos
+            #         print(f"Price per hour: ${total_price:.4f}")
 
-                    return total_price
-
-    
-    return None
+            #         return total_price
+    estimate = (SKU_PRICE['GPU'] * num_gpu + SKU_PRICE['CPU'] * num_cpu + SKU_PRICE['RAM'] * num_ram) * hours
+    return estimate
 
 def create_instance_with_docker(
     project_id: str,

@@ -178,9 +178,15 @@ def create_compute(params: Params, user: tuple[DocumentSnapshot, DocumentReferen
 
 @app.post("/estimate_cost")
 def estimate_cost(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
-    print("called api")
-    sku = estimate_instance_cost("e2-medium", 1)
-    return sku
+    user_info = user[0].to_dict()
+    num_runs = user_info['Num_Runs_This_Month']
+    cost_this_month = user_info['Cost_This_Month']
+    cost_limit = user_info['Limit_Cost_Per_Month']
+    estimate = estimate_instance_cost(1,4,8,1)
+    if estimate + cost_this_month > cost_limit:
+        return f'User has exceeded their monthly cost limit of ${cost_limit}'
+    user[1].update({'Num_Runs_This_Month': num_runs + 1,'Cost_This_Month': cost_this_month + estimate})
+    return {"Estimate": estimate}
 
 @app.post("/create_dummy_compute")
 def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
