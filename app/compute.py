@@ -15,10 +15,11 @@ print ("compute downloaded")
 # billing_client = billing_v1.CloudCatalogClient(credentials=credentials)
 # storage_client = storage.Client(credentials=credentials)
 # images_client = compute_v1.ImagesClient(credentials=credentials)
-
-
+billing_credentials = service_account.Credentials.from_service_account_file(
+    "app/secrets/epistorm-gleam-api-bb556a38b678.json"
+)
 instances_client = compute_v1.InstancesClient()
-billing_client = billing_v1.CloudCatalogClient()
+billing_client = billing_v1.CloudCatalogClient(credentials=billing_credentials)
 storage_client = storage.Client()
 images_client = compute_v1.ImagesClient()
 
@@ -27,7 +28,7 @@ print ("Instance client found")
 def estimate_instance_cost(machine_type, hours):
     # List SKUs for Compute Engine
     print("started")
-    skus = billing_client.list_skus(parent="6F81-5844-456A")
+    skus = billing_client.list_skus(parent="services/6F81-5844-456A")
     print("got skus")
     # Search for the SKU matching the machine type
     for sku in skus:
