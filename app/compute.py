@@ -158,6 +158,7 @@ def create_dummy_instance(
     startup_script = f"""#!/bin/bash
     IMAGE_NAME=$(curl http://metadata.google.internal/computeMetadata/v1/instance/attributes/image_name -H "Metadata-Flavor: Google")
     sudo apt-get update
+    sudo apt-get install -y zip
     sudo apt-get install -y docker.io
     sudo gcloud auth configure-docker
     sudo docker run polinux/stress bash
@@ -165,7 +166,11 @@ def create_dummy_instance(
     stress --cpu {cpu} --io {io} --vm {vm} --vm-bytes {vm_bytes} --timeout {timeout} --verbose
     mkdir data{timestamp}
     sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data{timestamp}
-    sudo gsutil cp -r data{timestamp} gs://seir-output-bucket-2/outputdata/
+    zip -r data{timestamp}.zip data{timestamp}
+    sudo gsutil cp -r data{timestamp}.zip gs://seir-output-bucket-2/outputdata/ """ + """
+    export NAME=$(curl -X GET http://metadata.google.internal/computeMetadata/v1/instance/name -H 'Metadata-Flavor: Google')
+    export ZONE=$(curl -X GET http://metadata.google.internal/computeMetadata/v1/instance/zone -H 'Metadata-Flavor: Google')
+    gcloud --quiet compute instances delete $NAME --zone=$ZONE
     """
 
     metadata_items = [
@@ -214,13 +219,6 @@ def create_dummy_instance(
     )
     operation = instances_client.insert(request=instance_insert_request)
     operation.result()  # Wait for the operation to complete
-
-    delete_request = compute_v1.DeleteInstanceRequest(
-        project=project_id,
-        instance=instance_name,
-        zone=zone
-    )
-    instances_client.delete(request=delete_request)
 
     
 

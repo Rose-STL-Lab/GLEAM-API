@@ -1,6 +1,6 @@
 import numpy as np
 import json
-from fastapi import Depends, FastAPI, BackgroundTasks, Response
+from fastapi import Depends, FastAPI, BackgroundTasks, Response, Request
 from pydantic import BaseModel
 from app.seir import seir, full_seir    
 from os import environ
@@ -33,6 +33,9 @@ from datetime import timedelta
 from google.cloud import secretmanager
 import tempfile
 
+import gc
+
+
 def download_service_account_key(bucket_name: str, blob_name: str) -> str:
     """Downloads the service account key from Cloud Storage and returns the file path."""
     storage_client = storage.Client()
@@ -43,7 +46,7 @@ def download_service_account_key(bucket_name: str, blob_name: str) -> str:
     blob.download_to_filename(temp_file.name)
 
     return temp_file.name 
-
+### This is for signed urls
 BUCKET_NAME = "liamsjuliabucket"
 SERVICE_ACCOUNT_FILENAME = "epistorm-gleam-api-612347bc95a6.json"
 service_account_path = download_service_account_key(BUCKET_NAME, SERVICE_ACCOUNT_FILENAME)
@@ -119,6 +122,14 @@ class NumpyEncoder(json.JSONEncoder):
         return super().default(obj)
     
 app = FastAPI()
+
+
+@app.middleware("http")
+async def collect_garbage(request: Request, call_next):
+    response = await call_next(request)
+    gc.collect()
+    return response
+
 
 @app.get("/")
 def test(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
@@ -416,7 +427,8 @@ async def download_folder(folder_name: str):
     """Creates a ZIP file of a GCS folder and returns a signed URL for download."""
     try:
         zip_blob_name = f"{folder_name}.zip" 
-        zip_gcs_path = zip_and_upload(folder_name, zip_blob_name)
+        # zip_gcs_path = zip_and_upload(folder_name, zip_blob_name)
+        zip_gcs_path = f"gs://{bucket_name}/{zip_blob_name}"
         
         signed_url = generate_signed_url(zip_blob_name)
         return {"download_url": signed_url, "gcs_path": zip_gcs_path}
