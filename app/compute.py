@@ -15,11 +15,11 @@ print ("compute downloaded")
 # billing_client = billing_v1.CloudCatalogClient(credentials=credentials)
 # storage_client = storage.Client(credentials=credentials)
 # images_client = compute_v1.ImagesClient(credentials=credentials)
-billing_credentials = service_account.Credentials.from_service_account_file(
-    "app/secrets/epistorm-gleam-api-bb556a38b678.json"
-)
+# billing_credentials = service_account.Credentials.from_service_account_file(
+#     "app/secrets/epistorm-gleam-api-bb556a38b678.json"
+# )
 instances_client = compute_v1.InstancesClient()
-billing_client = billing_v1.CloudCatalogClient(credentials=billing_credentials)
+billing_client = billing_v1.CloudCatalogClient()
 storage_client = storage.Client()
 images_client = compute_v1.ImagesClient()
 
