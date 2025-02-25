@@ -37,15 +37,15 @@ def estimate_instance_cost(num_gpu, num_cpu, num_ram, hours):
         if SKUS['RAM'] == sku.sku_id:
             print(f"Found RAM SKU: {sku.name} - {sku.description}")
             print(sku.pricing_info)
-            SKU_PRICE['RAM'] = sku.pricing_info.pricing_expression.tiered_rates[0].unit_price
+            SKU_PRICE['RAM'] = sku.pricing_info[0].pricing_expression.tiered_rates[0].unit_price
         if SKUS['GPU'] == sku.sku_id:
             print(f"Found GPU SKU: {sku.name} - {sku.description}")
             print(sku.pricing_info)
-            SKU_PRICE['GPU'] = sku.pricing_info.pricing_expression.tiered_rates[0].unit_price
+            SKU_PRICE['GPU'] = sku.pricing_info[0].pricing_expression.tiered_rates[0].unit_price
         if SKUS['CPU'] == sku.sku_id:
             print(f"Found CPU SKU: {sku.name} - {sku.description}")
             print(sku.pricing_info)    
-            SKU_PRICE['CPU'] = sku.pricing_info.pricing_expression.tiered_rates[0].unit_price
+            SKU_PRICE['CPU'] = sku.pricing_info[0].pricing_expression.tiered_rates[0].unit_price
             # for pricing_info in sku.pricing_info:
             #     if pricing_info.pricing_expression.usage_unit == "h":  # Hourly pricing
             #         price_per_hour = pricing_info.pricing_expression.tiered_rates[0].unit_price.units
