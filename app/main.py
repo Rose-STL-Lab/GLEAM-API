@@ -1,5 +1,6 @@
 import numpy as np
 import json
+from app.gleam_ml.stnp_supervisor import STNPSupervisor
 from fastapi import Depends, FastAPI, BackgroundTasks, Response, Request
 from pydantic import BaseModel
 from app.seir import seir, full_seir    
@@ -78,6 +79,10 @@ class ComputeImageParams(BaseModel):
     beta: float
     epsilon: float
     image: str
+
+class GleamParams(BaseModel):
+    x: list
+    x0: list
 
 class CreateImageParams(BaseModel):
     bucket_name: str
@@ -449,3 +454,38 @@ async def download_folder(folder_name: str):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/prediction")
+def gleam_ml(params: GleamParams):
+    print("started gleam")
+
+    x = np.array(params.x)
+    x0 = np.array(params.x0)
+    inputer = len(x)
+    
+    model_tar = torch.load("app/gleam_ml/model_epo101.tar")
+    with open("app/gleam_ml/dcrnn_cov.yaml") as f:
+        supervisor_config = yaml.safe_load(f)
+
+        graph_pkl_filename = supervisor_config['data'].get('graph_pkl_filename')
+        sensor_ids, sensor_id_to_ind, adj_mx = load_graph_data(graph_pkl_filename)
+    
+    print("loaded graph data")
+    i=1
+    max_itr = 12 #12
+    supervisor = STNPSupervisor(random_seed=i, iteration=101, max_itr = max_itr, 
+            adj_mx=adj_mx, **model_tar)
+    
+    print("created model")
+
+    supervisor.epoch_num = 101
+    supervisor.load_model()
+
+    x, x0 = supervisor._prepare_data(x, x0)
+    
+    z_var_all = 0.1 + 0.9 * torch.sigmoid(supervisor.z_var_temp_all)
+    zs = supervisor.dcrnn_model.sample_z(supervisor.z_mean_all, z_var_all, inputer)
+    outputs_hidden = supervisor.dcrnn_model.dcrnn_to_hidden(x)
+    output = supervisor.dcrnn_model.decoder(x0, outputs_hidden, zs)
+    
+    return output.tolist()
