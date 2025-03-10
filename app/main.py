@@ -304,7 +304,7 @@ def gleam_ml(params: GleamParams):
     return output.tolist()
 
 
-@app.post("/gleam_simulation")
+@app.post("/gleam_simulation_personal_bucket")
 def create_compute(params: AlternateBucketParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
     timestamp = str(int(time.time()))
