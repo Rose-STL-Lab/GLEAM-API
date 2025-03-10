@@ -195,7 +195,7 @@ def create_dummy_instance(
         gcloud auth activate-service-account {service_account} --key-file=service-account-key.json
         gsutil -o Credentials:gs_service_key_file=service-account-key.json cp -r data{timestamp}.zip gs://{bucket_name}/{folder}/
         gcloud auth activate-service-account "$GOOGLE_APPLICATION_CREDENTIALS_ORIG"
-        gcloud auth application-default login
+        gcloud auth application-default set-quota --quiet
         """
     else:
         startup_script += f"""
