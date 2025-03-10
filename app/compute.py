@@ -190,11 +190,12 @@ def create_dummy_instance(
     if service_account and service_account_key:
         service_account_json = json.dumps(service_account_key)
         startup_script += f"""
-        echo '{service_account_json}' > /tmp/service-account-key.json
-
-        gcloud auth activate-service-account {service_account} --key-file=/tmp/service-account-key.json
-
-        gsutil -o Credentials:gs_service_key_file=/tmp/service-account-key.json cp -r data{timestamp}.zip gs://{bucket_name}/{folder}/
+        export GOOGLE_APPLICATION_CREDENTIALS_ORIG=$(gcloud auth list --format="value(account)")
+        echo '{service_account_json}' > service-account-key.json
+        gcloud auth activate-service-account {service_account} --key-file=service-account-key.json
+        gsutil -o Credentials:gs_service_key_file=service-account-key.json cp -r data{timestamp}.zip gs://{bucket_name}/{folder}/
+        gcloud auth activate-service-account "$GOOGLE_APPLICATION_CREDENTIALS_ORIG"
+        gcloud auth application-default login
         """
     else:
         startup_script += f"""
