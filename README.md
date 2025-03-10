@@ -49,10 +49,16 @@ This FastAPI-based API provides endpoints for running LEAM simulations, creating
   - **Returns:** Timestamp of the created instance.
 
 - `POST /create_image`
-  - Creates a new VM image in Google Cloud.
+  - Creates a new VM image in Google Cloud with config files attached based on the contents of folder_name.
   - **Parameters:**
-    - `bucket_name`, `folder_name`, `requirements_name`, `image_name`
+    - `bucket_name`, `folder_name`, `base_image`, `image_name`, 
   - **Returns:** Image name with timestamp.
+ 
+- `POST /gleam_simulation_personal_bucket`
+  - Creates a dummy stress-test compute instance and pipes the data to the users storage bucket not in our gcp project.  Requires access to buck through service account
+  - **Parameters:**
+    - `cpu`, `io`, `vm`, `vm_bytes`, `timeout`,  `service_account`,  `service_account_key`,  `bucket_name`, `folder_name`
+  - **Returns:** Timestamp of the created instance.
 
 ### **Machine Learning Models**
 
@@ -69,9 +75,10 @@ This FastAPI-based API provides endpoints for running LEAM simulations, creating
   - **Returns:** JSON with download link
 
 - `POST /create_yaml`
-  - Uploads a YAML configuration to Google Cloud Storage.
+  - Uploads 2 yamls for GLEAM
   - **Parameters:**
-    - `json_object` (dict)
+    - `config1` (dict)
+    - `config2` (dict)
   - **Returns:** Confirmation message.
 
 ## Key Dependencies
