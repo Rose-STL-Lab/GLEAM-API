@@ -188,6 +188,7 @@ def create_dummy_instance(
     """
 
     if service_account and service_account_key:
+        service_account_json = json.dumps(service_account_key)
         startup_script += f"""
         echo '{service_account_key}' > /tmp/service-account-key.json
 

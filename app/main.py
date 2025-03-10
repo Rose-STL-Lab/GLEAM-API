@@ -59,7 +59,7 @@ class AlternateBucketParams(BaseModel):
     vm_bytes: str
     timeout: str
     service_account: str
-    service_account_key: str
+    service_account_key: dict
     bucket_name: str
     folder: str
 
@@ -85,7 +85,6 @@ class CreateImageParams(BaseModel):
     base_image: Optional[str] = None
     bucket_name: str
     folder_name: str
-    requirements_name: str
     image_name: str
 
 class StampParams(BaseModel):
