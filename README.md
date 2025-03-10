@@ -21,37 +21,22 @@ This FastAPI-based API provides endpoints for running LEAM simulations, creating
 
 ## Endpoints
 
-### **User Authentication**
+### **Miscellaneous**
 - `GET /`
-  - Retrieves user information and updates the number of runs this month.
+  - Returns API Status
   - **Dependencies:** `get_user`
 
-### **Simulations**
-- `POST /original`
-  - Runs a standard SEIR simulation.
+- `POST /estimate_cost`
+  - Estimates the cost of running the VM
   - **Parameters:**
-    - `days` (int)
-    - `sims` (int)
-    - `beta` (float)
-    - `epsilon` (float)
-  - **Returns:** JSON with simulation results.
-
-- `POST /multiple`
-  - Runs a SEIR simulation for multiple beta-epsilon parameter pairs.
-  - **Parameters:**
-    - `days` (int)
-    - `sims` (int)
-    - `beta_epsilon` (list of floats)
-  - **Returns:** JSON with simulation results.
+    - `num_gpu` (int)
+    - `num_cpu` (int)
+    - `num_ram` (int)
+    - `hours` (int)
+  - **Returns:** JSON with the cost estimate in US Dollars
 
 ### **Compute Management**
-- `POST /create_compute`
-  - Creates a compute instance to run LEAM simulations using Docker.
-  - **Parameters:**
-    - `days`, `sims`, `beta`, `epsilon`
-  - **Returns:** Timestamp of the created instance.
-
-- `POST /create_dummy_compute`
+- `POST /gleam_simulation`
   - Creates a dummy stress-test compute instance.
   - **Parameters:**
     - `cpu`, `io`, `vm`, `vm_bytes`, `timeout`
@@ -68,31 +53,20 @@ This FastAPI-based API provides endpoints for running LEAM simulations, creating
   - **Parameters:**
     - `bucket_name`, `folder_name`, `requirements_name`, `image_name`
   - **Returns:** Image name with timestamp.
- 
-- `POST /compute_with_config`
-  - Preferred method for running simulations. Runs LEAM with a given config and optional extra data
-  - **Parameters:**
-    - `bucket_name`, `folder_name`, `requirements_name`, `image_name`
-  - **Returns:** Timestamp for accessing data later
 
 ### **Machine Learning Models**
-- `POST /stnp_model`
-  - Runs the STNP model using a trained DCRNN model.
-  - **Parameters:** `days`, `sims`, `beta`, `epsilon`
-  - **Returns:** JSON with model predictions.
 
-- `POST /gleam_ml`
+- `POST /prediction`
   - Runs a GLEAM ML model using a pre-trained DCRNN supervisor.
-  - **Parameters:** `days`, `sims`, `beta`, `epsilon`
+  - **Parameters:** `x`, `x0`
   - **Returns:** Model inference results.
 
 ### **Data Management**
-- `POST /data`
-  - Retrieves or deletes simulation data from Google Cloud Storage.
+- `GET /download_folder`
+  - Retrieves simulation data from Google Cloud Storage.
   - **Parameters:**
-    - `stamp` (str): Identifier for the data file.
-    - `delete` (bool): Whether to delete the file after retrieval.
-  - **Returns:** JSON with simulation data.
+    - `folder_name` (str)
+  - **Returns:** JSON with download link
 
 - `POST /create_yaml`
   - Uploads a YAML configuration to Google Cloud Storage.
@@ -112,7 +86,7 @@ This FastAPI-based API provides endpoints for running LEAM simulations, creating
 
 ## Usage
 1. Install dependencies: `pip install -r requirements.txt`
-2. Run the API: `uvicorn app.main:app --reload`
+2. Run the API: `fastapi run app/main.py --port 80`
 3. Use an API client (e.g., Postman) to interact with the endpoints.
 
 This API supports cloud-based LEAM simulations and integrates with machine learning models for advanced epidemiological forecasting.

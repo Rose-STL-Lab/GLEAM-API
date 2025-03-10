@@ -10,10 +10,8 @@ import time
 import torch
 from google.cloud import storage
 from fastapi import HTTPException
-from app.gleam_ml.dcrnn_supervisor import DCRNNSupervisor
 import yaml
 from app.gleam_ml.lib.utils import load_graph_data
-from app.gleam_ml.lib import utils
 import io
 import zipfile
 from google.cloud import storage
@@ -83,6 +81,12 @@ class StampParams(BaseModel):
 
 class ConfigParams(BaseModel):
     json_object: dict 
+
+class EstimateCostParams(BaseModel):
+    num_gpu: int
+    num_cpu: int
+    num_ram: int
+    hours: int
     
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -105,12 +109,12 @@ def test(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
     return {"API Status": "Online"}
 
 @app.post("/estimate_cost")
-def estimate_cost(user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+def estimate_cost(params: EstimateCostParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
     user_info = user[0].to_dict()
     num_runs = user_info['Num_Runs_This_Month']
     cost_this_month = user_info['Cost_This_Month']
     cost_limit = user_info['Limit_Cost_Per_Month']
-    estimate = estimate_instance_cost(1,4,8,1)
+    estimate = estimate_instance_cost(params.num_gpu,params.num_cpu,params.num_ram,params.hours)
     if estimate + cost_this_month > cost_limit:
         return f'User has exceeded their monthly cost limit of ${cost_limit}'
     user[1].update({'Num_Runs_This_Month': num_runs + 1,'Cost_This_Month': cost_this_month + estimate})
@@ -142,41 +146,6 @@ def create_compute(params: StressTestParams, user: tuple[DocumentSnapshot, Docum
         )
     user[1].update({'Num_Runs_This_Month': num_runs + 1,'Cost_This_Month': cost_this_month + estimate})
     return timestamp
-
-@app.post("/model_pred")
-def gleam_ml(params: Params):
-    print("started gleam")
-    model_tar = torch.load("app/gleam_ml/model_epo101.tar")
-    with open("app/gleam_ml/dcrnn_cov.yaml") as f:
-        supervisor_config = yaml.safe_load(f)
-
-        graph_pkl_filename = supervisor_config['data'].get('graph_pkl_filename')
-        sensor_ids, sensor_id_to_ind, adj_mx = load_graph_data(graph_pkl_filename)
-        i=1
-        max_itr = 12 #12
-        data, search_data_x, search_data_y = utils.load_dataset(**supervisor_config.get('data'))
-        supervisor = DCRNNSupervisor(random_seed=i, iteration=11, max_itr = max_itr, 
-                adj_mx=adj_mx, **model_tar)
-        
-    supervisor.epoch_num = 101
-    supervisor.load_model()
-    supervisor._data = data
-    model = supervisor.dcrnn_model
-    val_iterator = supervisor._data['{}_loader'.format('val')].get_iterator()
-
-    for _, (x, y, x0) in enumerate(val_iterator):
-        x, y, x0 = supervisor._prepare_data(x, y, x0)
-        
-        output,_ = model(x, y, x0, None, True, supervisor.z_mean_all, supervisor.z_var_temp_all)
-        
-        break
-    output = output.detach().numpy()
-    return json.dumps({"model_pred": output}, 
-                       cls=NumpyEncoder)    
-    # temp_data = np.load('app/gleam_ml/data/data/val.npz')
-    # x,y,x0 = supervisor._prepare_data(temp_data['x'],temp_data['y'],None)
-    # model(x
-    #       ,y,None,None,test=True,z_mean_all=supervisor.z_mean_all,z_var_temp_all=supervisor.z_var_temp_all)
 
 @app.post("/create_compute_with_image")
 def create_compute_with_image(params: ComputeImageParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
