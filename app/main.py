@@ -18,6 +18,7 @@ from google.cloud import storage
 from google.oauth2 import service_account
 from datetime import timedelta
 import tempfile
+from typing import Optional
 
 import gc
 
@@ -51,6 +52,17 @@ class Params(BaseModel):
     beta: float
     epsilon: float
 
+class AlternateBucketParams(BaseModel):
+    cpu: int
+    io: int
+    vm: int
+    vm_bytes: str
+    timeout: str
+    service_account: str
+    service_account_key: str
+    bucket_name: str
+    folder: str
+
 class StressTestParams(BaseModel):
     cpu: int
     io: int
@@ -70,6 +82,7 @@ class GleamParams(BaseModel):
     x0: list
 
 class CreateImageParams(BaseModel):
+    base_image: Optional[str] = None
     bucket_name: str
     folder_name: str
     requirements_name: str
@@ -80,7 +93,8 @@ class StampParams(BaseModel):
     delete: bool
 
 class ConfigParams(BaseModel):
-    json_object: dict 
+    config1: dict
+    config2: dict 
 
 class EstimateCostParams(BaseModel):
     num_gpu: int
@@ -185,22 +199,23 @@ def create_image(params: CreateImageParams,
         instance_name=f"image-generator-{timestamp}",
         machine_type="e2-medium",
         image_family="debian-12",
+        base_image=params.base_image,
         image_project="debian-cloud",
         bucket_name=params.bucket_name,
         folder_name=params.folder_name,
-        requirements_name=params.requirements_name,
         custom_image_name=params.image_name + "-" + timestamp,
     )
     return params.image_name + "-"+ timestamp
 
 @app.post("/create_yaml")
-def create_image(params: ConfigParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+def create_yaml(params: ConfigParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
 
     timestamp = str(int(time.time()))
 
 
-    upload_yaml_to_gcs(params.json_object, "testscriptholder", f"config{timestamp}.yaml")
-    return f"config{timestamp}.yaml"
+    upload_yaml_to_gcs(params.config1, "testscriptholder", f"config{timestamp}/config1.yaml")
+    upload_yaml_to_gcs(params.config2, "testscriptholder", f"config{timestamp}/config2.yaml")
+    return f"config{timestamp}"
 
 def zip_and_upload(folder_name: str, zip_blob_name: str):
     bucket = storage_client.bucket(bucket_name)
@@ -287,3 +302,35 @@ def gleam_ml(params: GleamParams):
     output = supervisor.dcrnn_model.decoder(x0, outputs_hidden, zs)
     
     return output.tolist()
+
+
+@app.post("/gleam_simulation")
+def create_compute(params: AlternateBucketParams, user: tuple[DocumentSnapshot, DocumentReference] = Depends(get_user)):
+
+    timestamp = str(int(time.time()))
+    # user_info = user[0].to_dict()
+    # num_runs = user_info['Num_Runs_This_Month']
+    # cost_this_month = user_info['Cost_This_Month']
+    # cost_limit = user_info['Limit_Cost_Per_Month']
+    # estimate = estimate_instance_cost(2,1,4,1)
+    # if estimate + cost_this_month > cost_limit:
+    #     return f'User has exceeded their monthly cost limit of ${cost_limit}'
+    
+    output = create_dummy_instance(
+        project_id="epistorm-gleam-api",
+        zone="us-central1-a",
+        instance_name=f"stress-test-{timestamp}",
+        machine_type="e2-medium",
+        cpu= params.cpu,
+        io= params.io,
+        vm= params.vm,
+        vm_bytes= params.vm_bytes,
+        timeout= params.timeout,
+        timestamp = timestamp,
+        service_account= params.service_account,
+        service_account_key = params.service_account_key, 
+        bucket_name = params.bucket_name,
+        folder = params.folder
+        )
+    # user[1].update({'Num_Runs_This_Month': num_runs + 1,'Cost_This_Month': cost_this_month + estimate})
+    return timestamp

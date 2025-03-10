@@ -163,8 +163,16 @@ def create_dummy_instance(
     vm: int,
     vm_bytes: str,
     timeout: str,
-    timestamp: str
-) -> compute_v1.Instance:
+    timestamp: str,
+    service_account: str = None,
+    service_account_key: str = None, 
+    bucket_name: str = None,
+    folder: str = None
+) -> str:
+
+    bucket_name = bucket_name or "seir-output-bucket-2"
+    folder = folder or "outputdata"
+
     startup_script = f"""#!/bin/bash
     IMAGE_NAME=$(curl http://metadata.google.internal/computeMetadata/v1/instance/attributes/image_name -H "Metadata-Flavor: Google")
     sudo apt-get update
@@ -177,11 +185,27 @@ def create_dummy_instance(
     mkdir data{timestamp}
     sudo gsutil cp -r gs://seir-output-bucket-2/leam_us_data/data data{timestamp}
     zip -r data{timestamp}.zip data{timestamp}
-    sudo gsutil cp -r data{timestamp}.zip gs://seir-output-bucket-2/outputdata/ """ + """
+    """
+
+    if service_account and service_account_key:
+        startup_script += f"""
+        echo '{service_account_key}' > /tmp/service-account-key.json
+
+        gcloud auth activate-service-account {service_account} --key-file=/tmp/service-account-key.json
+
+        gsutil -o Credentials:gs_service_key_file=/tmp/service-account-key.json cp -r data{timestamp}.zip gs://{bucket_name}/{folder}/
+        """
+    else:
+        startup_script += f"""
+        sudo gsutil cp -r data{timestamp}.zip gs://{bucket_name}/{folder}/
+        """
+
+    startup_script += """
     export NAME=$(curl -X GET http://metadata.google.internal/computeMetadata/v1/instance/name -H 'Metadata-Flavor: Google')
     export ZONE=$(curl -X GET http://metadata.google.internal/computeMetadata/v1/instance/zone -H 'Metadata-Flavor: Google')
     gcloud --quiet compute instances delete $NAME --zone=$ZONE
     """
+
 
     metadata_items = [
         compute_v1.Items(key="startup-script", value=startup_script)
@@ -333,10 +357,10 @@ def create_instance_and_save_image(
     instance_name: str,
     machine_type: str,
     image_family: str,
+    base_image:str,
     image_project: str,
     bucket_name: str,
     folder_name: str,
-    requirements_name: str,
     custom_image_name: str
 ) -> compute_v1.Instance:
     """
@@ -364,27 +388,24 @@ sudo mkdir -p /opt/myapp/
 sudo chmod -R 755 /opt/myapp/{folder_name} 
 
 sudo gsutil cp -r gs://{bucket_name}/{folder_name} /opt/myapp
-sudo gsutil cp gs://{bucket_name}/{folder_name}/{requirements_name} /opt/myapp/requirements.txt
-
-cd ..
-cd ..
-cd opt/myapp
-sudo apt install -y python3.11-venv
-sudo python3 -m venv /opt/myapp/venv
-source venv/bin/activate
-sudo /opt/myapp/venv/bin/pip install -r requirements.txt
-sudo /opt/myapp/venv/bin/pip install --upgrade pandas
 """
 
     metadata_items = [
         compute_v1.Items(key="startup-script", value=startup_script)
     ]
- 
-    initialize_params = compute_v1.AttachedDiskInitializeParams(
-        source_image=f"projects/{image_project}/global/images/family/{image_family}",
+
+    if base_image:
+        initialize_params = compute_v1.AttachedDiskInitializeParams(
+        source_image=base_image,
         disk_size_gb=50,
         disk_type=f"zones/{zone}/diskTypes/pd-balanced"
     )
+    else:
+        initialize_params = compute_v1.AttachedDiskInitializeParams(
+        source_image=f"projects/{image_project}/global/images/family/{image_family}",
+        disk_size_gb=50,
+        disk_type=f"zones/{zone}/diskTypes/pd-balanced"
+        )
     disk = compute_v1.AttachedDisk(
         boot=True,
         auto_delete=True,
@@ -417,7 +438,7 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
         instance_resource=instance_resource
     )
     operation = instances_client.insert(request=instance_insert_request)
-    operation.result()  # Wait for the operation to complete
+    operation.result() 
     time.sleep(180)
 
     stop_request = compute_v1.StopInstanceRequest(
@@ -426,9 +447,8 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
         instance=instance_name
     )
     stop_operation = instances_client.stop(request=stop_request)
-    stop_operation.result()  # Wait for the instance to stop
+    stop_operation.result()  
 
-    # Create the custom image
     image_request = compute_v1.InsertImageRequest(
         project=project_id,
         image_resource=compute_v1.Image(
@@ -437,7 +457,7 @@ sudo /opt/myapp/venv/bin/pip install --upgrade pandas
         )
     )
     image_operation = images_client.insert(request=image_request)
-    image_operation.result()  # Wait for the image creation to complete
+    image_operation.result() 
 
     delete_request = compute_v1.DeleteInstanceRequest(
         project = project_id,
@@ -562,120 +582,3 @@ def create_instance_with_image_config(
     return instances_client.get(project=project_id, zone=zone, instance=instance_name)
 
 
-
-def julia_create_instance_and_save_image(
-    project_id: str,
-    zone: str,
-    instance_name: str,
-    machine_type: str,
-    image_family: str,
-    image_project: str,
-    bucket_name: str,
-    folder_name: str, 
-    custom_image_name: str
-) -> str:
-    """
-    Creates a Compute Engine VM instance, sets up a Julia environment, installs dependencies,
-    verifies the setup, and saves the instance as a custom image.
-
-    Args:
-        project_id: GCP project ID.
-        zone: Compute Engine zone, e.g., "us-west3-b".
-        instance_name: Name of the new instance.
-        machine_type: Machine type, e.g., "e2-medium".
-        image_family: Image family for the VM OS, e.g., "debian-12".
-        image_project: Google Cloud project hosting the OS image.
-        bucket_name: GCP Storage bucket containing the Julia scripts.
-        folder_name: Folder in the bucket with Julia scripts.
-        custom_image_name: Name of the custom image to create.
-
-    Returns:
-        The name of the created custom image.
-    """
-
-    startup_script = f"""#!/bin/bash
-# Update and install necessary tools
-cd ..
-cd ..
-sudo apt-get update
-sudo apt-get install -y wget curl software-properties-common
-
-# Install Julia
-
-
-"""
-
-    metadata_items = [
-        compute_v1.Items(key="startup-script", value=startup_script)
-    ]
-
-    initialize_params = compute_v1.AttachedDiskInitializeParams(
-        source_image=f"projects/{image_project}/global/images/family/{image_family}",
-        disk_size_gb=50,
-        disk_type=f"zones/{zone}/diskTypes/pd-balanced"
-    )
-    disk = compute_v1.AttachedDisk(
-        boot=True,
-        auto_delete=True,
-        initialize_params=initialize_params
-    )
-
-    access_config = compute_v1.AccessConfig(name="External NAT", type_="ONE_TO_ONE_NAT")
-    network_interface = compute_v1.NetworkInterface(
-        name="global/networks/default",
-        access_configs=[access_config]
-    )
-
-    instance_resource = compute_v1.Instance(
-        name=instance_name,
-        machine_type=f"zones/{zone}/machineTypes/{machine_type}",
-        disks=[disk],
-        network_interfaces=[network_interface],
-        metadata=compute_v1.Metadata(items=metadata_items),
-        service_accounts=[
-            compute_v1.ServiceAccount(
-                email="default",
-                scopes=["https://www.googleapis.com/auth/cloud-platform"]
-            )
-        ]
-    )
-
-    instance_insert_request = compute_v1.InsertInstanceRequest(
-        project=project_id,
-        zone=zone,
-        instance_resource=instance_resource
-    )
-    operation = instances_client.insert(request=instance_insert_request)
-    operation.result()  # Wait for instance creation
-    # time.sleep(180)  # Wait for setup to complete
-
-    # # Stop the instance before creating an image
-    # stop_request = compute_v1.StopInstanceRequest(
-    #     project=project_id,
-    #     zone=zone,
-    #     instance=instance_name
-    # )
-    # stop_operation = instances_client.stop(request=stop_request)
-    # stop_operation.result()  # Wait for instance to stop
-
-    # # Create a custom image
-    # images_client = compute_v1.ImagesClient()
-    # image_request = compute_v1.InsertImageRequest(
-    #     project=project_id,
-    #     image_resource=compute_v1.Image(
-    #         name=custom_image_name,
-    #         source_disk=f"projects/{project_id}/zones/{zone}/disks/{instance_name}"
-    #     )
-    # )
-    # image_operation = images_client.insert(request=image_request)
-    # image_operation.result()  # Wait for image creation
-
-    # # Delete the instance after creating the image
-    # delete_request = compute_v1.DeleteInstanceRequest(
-    #     project=project_id,
-    #     instance=instance_name,
-    #     zone=zone
-    # )
-    # instances_client.delete(request=delete_request)
-
-    return custom_image_name
