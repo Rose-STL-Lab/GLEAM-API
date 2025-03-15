@@ -1,10 +1,10 @@
-# Gleam Model API
+# [Gleam Model API](https://capstone-gleam-api-git-main-kyladawons-projects.vercel.app/)
 
 ## Description
 
-The goal of this project is to create an API so users can access the GLEAM simulation model and data without having to run the simulation on their local machine. This is a basic version of the API that will be used to connect the gleam model to machine learning models over the web. Instead of having a the more Complex GLEAM model accessed in this API, we instead are using the placerholder LEAM US model. There are various branches on this repository that each correspond to different objectives and explorations that we have done. 
+The goal of this project is to create a cloud API so users can access the GLEAM simulation data and [machine learning surrogate model](https://github.com/Rose-STL-Lab/Interactive-Neural-Process) predictios without having to run the simulation on their local machine. This is a basic version of the API that will be used to connect the gleam model to surrogate model over the web. Instead of having the more Complex GLEAM model accessed in this API, we instead are using the LEAM US model. There are various branches on this repository that each correspond to different objectives and explorations that we have done. 
 
-The API is built using FastAPI and depending on the branch, has a varying amount of endpoints. Main has a single endpoint that only takes in one set of parameters. Multiple takes in various sets of parameters. API Key has API key authentication. Gcloud has google cloud specific additions to the API. Async_api has a simple NP model attached that can communicate with the api when it is launched.
+The API is built using FastAPI and depending on the branch, has a varying amount of endpoints. Main has a single endpoint that only takes in one set of parameters. Multiple takes in various sets of parameters. API Key has API key authentication. Gcloud has google cloud specific additions to the API. Async_api has a simple NP model attached that can communicate with the api when it is launched. The development of this API was completed as part of the DSC capstone project. 
 
 Liam and Kyla worked extensively on the compute engine creation logic, including the data pipeline.
 
