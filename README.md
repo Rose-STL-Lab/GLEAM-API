@@ -2,14 +2,14 @@
 
 ## Description
 
-The goal of this project is to create a cloud API so users can access the GLEAM simulation data and [machine learning surrogate model](https://github.com/Rose-STL-Lab/Interactive-Neural-Process) predictios without having to run the simulation on their local machine. This is a basic version of the API that will be used to connect the gleam model to surrogate model over the web. Instead of having the more Complex GLEAM model accessed in this API, we instead are using the LEAM US model. There are various branches on this repository that each correspond to different objectives and explorations that we have done. 
+The goal of this project is to create a cloud API, so users can access the GLEAM simulation data and [machine learning surrogate model](https://github.com/Rose-STL-Lab/Interactive-Neural-Process) predictions without having to run the simulation on their local machine. This is a basic version of the API that will be used to connect the gleam model to a surrogate model over the web. Instead of having the more complex GLEAM model accessed in this API, we instead are using the LEAM US model. There are various branches on this repository that each correspond to different objectives and explorations that we have done. 
 
-The API is built using FastAPI and depending on the branch, has a varying amount of endpoints. Main has a single endpoint that only takes in one set of parameters. Multiple takes in various sets of parameters. API Key has API key authentication. Gcloud has google cloud specific additions to the API. Async_api has a simple NP model attached that can communicate with the api when it is launched. The development of this API was completed as part of the DSC capstone project. 
+The API is built using FastAPI and depending on the branch, has a varying number of endpoints. Main has a single endpoint that only takes in one set of parameters. Multiple takes in various sets of parameters. API Key has API key authentication. Gcloud has google cloud specific additions to the API. Async_api has a simple NP model attached that can communicate with the api when it is launched. The development of this API was completed as part of the DSC capstone project. 
 
 Liam and Kyla worked extensively on the compute engine creation logic, including the data pipeline.
 
 
-Alaa and Ethan handled the authorization and other api logistics, they also contributed to integrating endpoints.
+Alaa and Ethan handled the authorization and other api logistics. They also contributed to integrating endpoints.
 
 
 Annirudh and Manav worked deeply on the Machine Learning aspect of our project and getting our surrogate model hosted on the cloud - code for the predictions can be found here - https://github.com/aindraga/Leam-US.
@@ -17,7 +17,7 @@ Annirudh and Manav worked deeply on the Machine Learning aspect of our project a
 
 # LEAM Simulation API
 
-This FastAPI-based API provides endpoints for running LEAM simulations, creating compute instances, and managing simulation data. It integrates with Google Cloud for compute and storage.
+This FastAPI-based API provides endpoints for running LEAM simulations, creating compute instances, and managing simulation data. It integrates with Google Cloud for computing and storage.
 
 ## Endpoints
 
